@@ -12,7 +12,7 @@
 		<PackageProjectUrl>https://github.com/r6tenmans/faceit-sharp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/r6tenmans/faceit-sharp</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageIcon>icon.svg</PackageIcon>
+		<PackageIcon>icon.png</PackageIcon>
 		<Version>1.0.0</Version>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
@@ -24,7 +24,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="..\..\icon.svg">
+		<None Include="..\..\icon.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
