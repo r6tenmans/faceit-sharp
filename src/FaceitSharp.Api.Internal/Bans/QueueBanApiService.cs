@@ -13,6 +13,26 @@ public interface IQueueBanApiService
     Task<FaceitQueueBan?> Create(FaceitQueueBanRequest ban);
 
     /// <summary>
+    /// Issues a queue ban
+    /// </summary>
+    /// <param name="queueId">The ID of the queue to ban from</param>
+    /// <param name="userId">The ID of the user</param>
+    /// <param name="ends">When the ban should end</param>
+    /// <param name="reason">The reason for the ban</param>
+    /// <returns>The resulting queue ban</returns>
+    Task<FaceitQueueBan?> Create(string queueId, string userId, DateTime ends, string reason);
+
+    /// <summary>
+    /// Issues a queue ban
+    /// </summary>
+    /// <param name="queueId">The ID of the queue to ban from</param>
+    /// <param name="userId">The ID of the user</param>
+    /// <param name="hours">How many hours the ban should last</param>
+    /// <param name="reason">The reason for the ban</param>
+    /// <returns>The resulting queue ban</returns>
+    Task<FaceitQueueBan?> Create(string queueId, string userId, double hours, string reason);
+
+    /// <summary>
     /// Delete a queue ban
     /// </summary>
     /// <param name="id">The ID of the queue ban to delete</param>
@@ -35,6 +55,28 @@ internal class QueueBanApiService(IInternalApiService _api) : IQueueBanApiServic
     public Task<FaceitQueueBan?> Create(FaceitQueueBanRequest ban)
     {
         return _api.PostOne<FaceitQueueBan, FaceitQueueBanRequest>("queue/v1/ban", ban);
+    }
+
+    public Task<FaceitQueueBan?> Create(string queueId, string userId, DateTime ends, string reason)
+    {
+        return Create(new() 
+        {
+            QueueId = queueId,
+            UserId = userId,
+            Reason = reason,
+            BanEnd = ends,
+        });
+    }
+
+    public Task<FaceitQueueBan?> Create(string queueId, string userId, double hours, string reason)
+    {
+        return Create(new()
+        {
+            QueueId = queueId,
+            UserId = userId,
+            Reason = reason,
+            BanDurationHours = hours
+        });
     }
 
     public Task<FaceitResult?> Delete(string id)

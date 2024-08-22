@@ -15,6 +15,7 @@ public static class DiExtensions
     {
         var builder = new FaceitConfigurationBuilder(services);
         bob(builder);
+        builder.Register();
         return services;
     }
 }

@@ -4,7 +4,7 @@ public class FaceitRole
 {
     #region Id
     [JsonPropertyName("guid"), Obsolete("Use " + nameof(Id))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? Guid
     {
         get => null;
@@ -32,7 +32,7 @@ public class FaceitRole
 
     #region VisibleOnChat
     [JsonPropertyName("visible_on_chat"), Obsolete("Use " + nameof(VisibleOnChat))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal bool? Visible_On_Chat
     {
         get => null;

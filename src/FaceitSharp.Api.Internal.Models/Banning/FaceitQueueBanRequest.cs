@@ -6,14 +6,14 @@
 public class FaceitQueueBanRequest
 {
     #region Ban End Date
-    [JsonPropertyName("banEnd")]
+    [JsonPropertyName("banEnd"), JsonInclude]
     internal long BanEndEpoch { get; set; }
 
     /// <summary>
     /// The date the ban should end
     /// </summary>
     [JsonIgnore]
-    public required DateTime BanEnd
+    public DateTime BanEnd
     {
         get => BanEndEpoch.FaceitEpoch();
         set => BanEndEpoch = value.FaceitEpoch();
@@ -21,7 +21,7 @@ public class FaceitQueueBanRequest
     #endregion
 
     #region Ban Start Date
-    [JsonPropertyName("banStart")]
+    [JsonPropertyName("banStart"), JsonInclude]
     internal long BanStartEpoch { get; set; } = DateTime.UtcNow.FaceitEpoch();
 
     /// <summary>
@@ -33,23 +33,33 @@ public class FaceitQueueBanRequest
         get => BanStartEpoch.FaceitEpoch();
         set => BanStartEpoch = value.FaceitEpoch();
     }
+
+    /// <summary>
+    /// The number of hours the ban should last
+    /// </summary>
+    [JsonIgnore]
+    public double BanDurationHours
+    {
+        get => (BanEnd - BanStart).TotalHours;
+        set => BanEnd = BanStart.AddHours(value);
+    }
     #endregion
 
     /// <summary>
     /// The ID of the queue to ban the user from
     /// </summary>
     [JsonPropertyName("queueId")]
-    public required string QueueId { get; set; }
+    public string QueueId { get; set; } = string.Empty;
 
     /// <summary>
     /// The reason to ban the user
     /// </summary>
     [JsonPropertyName("reason")]
-    public required string Reason { get; set; }
+    public string Reason { get; set; } = string.Empty;
 
     /// <summary>
     /// The ID of the user to ban
     /// </summary>
     [JsonPropertyName("userId")]
-    public required string UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
 }

@@ -51,7 +51,7 @@ public abstract class FaceitTicket
 
     #region History
     [JsonPropertyName("statusHistory"), Obsolete("Use " + nameof(History))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal TicketHistory[]? StatusHistory
     {
         get => null;

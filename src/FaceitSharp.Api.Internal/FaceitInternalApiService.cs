@@ -34,6 +34,11 @@ public interface IFaceitInternalApiService
     /// Requests related to FaceIT users
     /// </summary>
     IUserApiService Users { get; }
+
+    /// <summary>
+    /// Requests related to FaceIT queues
+    /// </summary>
+    IQueueApiService Queues { get; }
 }
 
 internal class FaceitInternalApiService(
@@ -42,7 +47,8 @@ internal class FaceitInternalApiService(
     IMatchApiService _matches,
     ITicketApiService _tickets,
     ITournamentApiService _tournaments,
-    IUserApiService _users) : IFaceitInternalApiService
+    IUserApiService _users,
+    IQueueApiService _queues) : IFaceitInternalApiService
 {
     public IBanApiService Bans => _bans;
 
@@ -55,4 +61,6 @@ internal class FaceitInternalApiService(
     public ITournamentApiService Tournaments => _tournaments;
 
     public IUserApiService Users => _users;
+
+    public IQueueApiService Queues => _queues;
 }

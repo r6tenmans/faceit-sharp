@@ -1,5 +1,7 @@
 ﻿namespace FaceitSharp.Api.Internal;
 
+using Interop;
+
 public static class DiExtensions
 {
     public static IServiceCollection AddInternalFaceitApi(this IServiceCollection services)
@@ -13,7 +15,11 @@ public static class DiExtensions
             .AddTransient<ITicketApiService, TicketApiService>()
             .AddTransient<ITournamentApiService, TournamentApiService>()
             .AddTransient<IUserApiService, UserApiService>()
+            .AddTransient<IQueueApiService, QueueApiService>()
             .AddTransient<IFaceitInternalApiService, FaceitInternalApiService>()
-            .AddTransient<IInternalApiService, InternalApiService>();
+            .AddTransient<IInternalApiService, InternalApiService>()
+            
+            .AddTransient<IFaceitJsonService, FaceitJsonService>()
+            .AddTransient<IFaceitCacheService, FaceitCacheService>();
     }
 }

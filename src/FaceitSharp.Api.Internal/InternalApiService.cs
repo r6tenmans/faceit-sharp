@@ -1,5 +1,7 @@
 ﻿namespace FaceitSharp.Api.Internal;
 
+using Interop;
+
 internal interface IInternalApiService : IApiService
 {
     Task<T?> GetOne<T>(string url);
@@ -17,10 +19,11 @@ internal interface IInternalApiService : IApiService
 
 internal class InternalApiService(
     IHttpClientFactory httpFactory,
-    IJsonService json,
-    ICacheService cache,
+    IFaceitJsonService json,
+    IFaceitCacheService cache,
     IFaceitConfig _config,
-    ILogger<InternalApiService> _logger) : ApiService(httpFactory, json, cache, _logger), IInternalApiService
+    ILogger<InternalApiService> _logger) 
+        : ApiService(httpFactory, json, cache, _logger), IInternalApiService
 {
     public string MarryURLs(string url)
     {

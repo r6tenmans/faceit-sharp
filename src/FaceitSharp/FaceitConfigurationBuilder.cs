@@ -1,6 +1,6 @@
 ﻿namespace FaceitSharp;
 
-using FaceitSharp.Api.Internal;
+using Api.Internal;
 using Webhooks;
 
 /// <summary>
@@ -108,13 +108,15 @@ internal class FaceitConfigurationBuilder(
         => WithConfig(new StaticFaceitConfig(apiToken, userAgent));
     #endregion
 
-    public void Build()
+    public void Register()
     {
         if (!_hasConfig)
             throw new InvalidOperationException("No Faceit configuration was provided. Did you forget to call `WithConfig`?");
 
         AddWebhooks();
-        _services.AddInternalFaceitApi();
-        _services.AddTransient<IFaceitApi, FaceitApi>();
+        _services
+            .AddHttpClient()
+            .AddInternalFaceitApi()
+            .AddTransient<IFaceitApi, FaceitApi>();
     }
 }

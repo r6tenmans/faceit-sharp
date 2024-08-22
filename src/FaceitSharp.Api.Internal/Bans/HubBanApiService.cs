@@ -6,11 +6,20 @@
 public interface IHubBanApiService
 {
     /// <summary>
-    /// Issue a hub bane
+    /// Issue a hub ban
     /// </summary>
     /// <param name="ban">The ban to issue</param>
     /// <returns>The resulting hub ban</returns>
     Task<FaceitHubBan?> Create(FaceitHubBanRequest ban);
+
+    /// <summary>
+    /// Issue a hub ban
+    /// </summary>
+    /// <param name="hubId">The ID of the hub</param>
+    /// <param name="userId">The ID of the user</param>
+    /// <param name="reason">The reason to ban the user</param>
+    /// <returns>The resulting hub ban</returns>
+    Task<FaceitHubBan?> Create(string hubId, string userId, string reason);
 
     /// <summary>
     /// Delete a hub ban
@@ -36,6 +45,16 @@ internal class HubBanApiService(IInternalApiService _api) : IHubBanApiService
     {
         var url = $"hubs/v1/hub/{ban.HubId}/ban/{ban.UserId}";
         return _api.PostOne<FaceitHubBan, FaceitHubBanRequest>(url, ban);
+    }
+
+    public Task<FaceitHubBan?> Create(string hubId, string userId, string reason)
+    {
+        return Create(new FaceitHubBanRequest
+        {
+            HubId = hubId,
+            UserId = userId,
+            Reason = reason
+        });
     }
 
     public async Task<bool> Delete(string hubId, string userId)

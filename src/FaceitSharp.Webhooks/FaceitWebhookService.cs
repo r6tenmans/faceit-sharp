@@ -19,10 +19,15 @@ public interface IFaceitWebhookService
 }
 
 internal class FaceitWebhookService(
-    IEnumerable<IFaceitWebhookEventHandler> _handlers,
+    IServiceProvider _provider,
     ILogger<FaceitWebhookService> _logger,
     IFaceitConfig _config) : IFaceitWebhookService
 {
+    public IEnumerable<IFaceitWebhookEventHandler> GetHandlers()
+    {
+        return _provider.GetServices<IFaceitWebhookEventHandler>();
+    }
+
     public Task Handle(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -35,11 +40,13 @@ internal class FaceitWebhookService(
 
     public async Task Handle(FaceitWebhook webhook)
     {
+        var handlers = GetHandlers();
+
         if (_config.LogWebHooks)
             _logger.LogInformation("[FACEIT WEBHOOK] [event::{event}] >> {id} - Received", 
                 webhook.Event, webhook.TransactionId);
 
-        if (!_handlers.Any())
+        if (!handlers.Any())
         {
             _logger.LogWarning("[FACEIT WEBHOOK] [event::{event}] >> {id} - No webhook handlers registered, skipping",
                 webhook.Event, webhook.TransactionId);
@@ -60,7 +67,7 @@ internal class FaceitWebhookService(
             return;
         }
 
-        foreach(var handler in _handlers)
+        foreach(var handler in handlers)
         {
             try
             {

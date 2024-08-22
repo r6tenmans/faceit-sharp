@@ -11,12 +11,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FaceitSharp.Core", "FaceitS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FaceitSharp.Api.Internal", "FaceitSharp.Api.Internal\FaceitSharp.Api.Internal.csproj", "{696DA754-1469-4B54-9171-608810939C25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FaceitSharp.Webhooks", "FaceitSharp.Webhooks\FaceitSharp.Webhooks.csproj", "{71BD37D6-3EED-42B2-82CD-5FEC27626036}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FaceitSharp.Webhooks", "FaceitSharp.Webhooks\FaceitSharp.Webhooks.csproj", "{71BD37D6-3EED-42B2-82CD-5FEC27626036}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7BA963D7-9CFA-454F-8BCC-4202093635C0}"
 	ProjectSection(SolutionItems) = preProject
 		..\.github\workflows\main.yml = ..\.github\workflows\main.yml
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FaceitSharp.Cli", "FaceitSharp.Cli\FaceitSharp.Cli.csproj", "{3BABAFB1-6B10-4876-9AF2-1AB0D5C95C12}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +46,10 @@ Global
 		{71BD37D6-3EED-42B2-82CD-5FEC27626036}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{71BD37D6-3EED-42B2-82CD-5FEC27626036}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{71BD37D6-3EED-42B2-82CD-5FEC27626036}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BABAFB1-6B10-4876-9AF2-1AB0D5C95C12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BABAFB1-6B10-4876-9AF2-1AB0D5C95C12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BABAFB1-6B10-4876-9AF2-1AB0D5C95C12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BABAFB1-6B10-4876-9AF2-1AB0D5C95C12}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

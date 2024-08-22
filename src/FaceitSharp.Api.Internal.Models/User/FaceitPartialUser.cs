@@ -6,12 +6,13 @@
 public partial class FaceitPartialUser
 {
     #region User Id
+
     [JsonPropertyName("guid"), Obsolete("Use " + nameof(UserId))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? Guid
     {
         get => null;
-        set => UserId = value ?? string.Empty;
+        set => UserId = value ?? UserId;
     }
 
     /// <summary>
@@ -23,19 +24,19 @@ public partial class FaceitPartialUser
 
     #region Name
     [JsonPropertyName("nickname"), Obsolete("Use " + nameof(Name))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? Nickname
     {
         get => null;
-        set => Name = value ?? string.Empty;
+        set => Name = value ?? Name;
     }
 
     [JsonPropertyName("username"), Obsolete("Use " + nameof(Name))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? Username
     {
         get => null;
-        set => Name = value ?? string.Empty;
+        set => Name = value ?? Name;
     }
 
     /// <summary>
@@ -47,7 +48,7 @@ public partial class FaceitPartialUser
 
     #region Avatar
     [JsonPropertyName("avatarUrl"), Obsolete("Use " + nameof(Avatar))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? AvatarUrl
     {
         get => null;
@@ -69,10 +70,10 @@ public partial class FaceitPartialUser
 public partial class FaceitPartialUserWithId : FaceitPartialUser
 {
     [JsonPropertyName("id"), Obsolete("Use " + nameof(UserId))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? Id
     {
         get => null;
-        set => UserId = value ?? string.Empty;
+        set => UserId = value ?? UserId;
     }
 }

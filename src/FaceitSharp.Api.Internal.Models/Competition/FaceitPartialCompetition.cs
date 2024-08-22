@@ -7,7 +7,7 @@ public partial class FaceitPartialCompetition
 {
     #region Id
     [JsonPropertyName("guid"), Obsolete("Use " + nameof(Id))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? Guid
     {
         get => null;
@@ -44,7 +44,7 @@ public partial class FaceitPartialCompetition
 
     #region Avatar
     [JsonPropertyName("avatarUrl"), Obsolete("Use " + nameof(Avatar))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal string? AvatarUrl
     {
         get => null;

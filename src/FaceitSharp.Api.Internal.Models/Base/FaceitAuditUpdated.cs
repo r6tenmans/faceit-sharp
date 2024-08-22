@@ -7,7 +7,7 @@ public partial class FaceitAuditUpdated : FaceitAuditCreated
 {
     #region Updated By
     [JsonPropertyName("lastModified"), Obsolete("Use " + nameof(UpdatedAt))]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonInclude]
     internal DateTime? LastModified
     {
         get => null;

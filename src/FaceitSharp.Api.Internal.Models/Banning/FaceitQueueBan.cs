@@ -72,6 +72,12 @@ public class FaceitQueueBan : FaceitAuditUpdated
     public DateTime BanEnd { get; set; }
 
     /// <summary>
+    /// The number of hours the ban should last
+    /// </summary>
+    [JsonIgnore]
+    public double BanDurationHours => (BanEnd - BanStart).TotalHours;
+
+    /// <summary>
     /// Whether or not the ban has expired
     /// </summary>
     [JsonPropertyName("expired")]
