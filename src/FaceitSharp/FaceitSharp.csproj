@@ -13,7 +13,7 @@
 		<RepositoryUrl>https://github.com/r6tenmans/faceit-sharp</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageIcon>icon.png</PackageIcon>
-		<Version>1.0.1</Version>
+		<Version>1.0.2</Version>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -43,11 +43,14 @@
 		<PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
 		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.0" />
 		<PackageReference Include="System.Text.Json" Version="8.0.4" />
+		<PackageReference Include="Websocket.Client" Version="5.1.2" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\FaceitSharp.Api.Internal.Models\FaceitSharp.Api.Internal.Models.csproj" PrivateAssets="All" />
 		<ProjectReference Include="..\FaceitSharp.Api.Internal\FaceitSharp.Api.Internal.csproj" PrivateAssets="All" />
+		<ProjectReference Include="..\FaceitSharp.Chat.XMPP\FaceitSharp.Chat.XMPP.csproj" PrivateAssets="All" />
+		<ProjectReference Include="..\FaceitSharp.Chat\FaceitSharp.Chat.csproj" PrivateAssets="All" />
 		<ProjectReference Include="..\FaceitSharp.Core\FaceitSharp.Core.csproj" PrivateAssets="All" />
 		<ProjectReference Include="..\FaceitSharp.Webhooks\FaceitSharp.Webhooks.csproj" PrivateAssets="All" />
 	</ItemGroup>

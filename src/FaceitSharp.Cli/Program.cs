@@ -9,8 +9,9 @@ return await new ServiceCollection()
         .WithWebhookHandler<WebhookTestHandler>())
     .AddTransient<TestRunner>()
 
-    .AddTransient<ITest, StandardTest>()
-    .AddTransient<ITest, WebhookTest>()
+    //.AddTransient<ITest, StandardTest>()
+    //.AddTransient<ITest, WebhookTest>()
+    .AddTransient<ITest, ChatTest>()
 
     .BuildServiceProvider()
     .GetRequiredService<TestRunner>()

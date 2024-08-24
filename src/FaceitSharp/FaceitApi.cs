@@ -1,6 +1,7 @@
 ﻿namespace FaceitSharp;
 
 using Api.Internal;
+using FaceitSharp.Chat;
 using Webhooks;
 
 /// <summary>
@@ -17,6 +18,11 @@ public interface IFaceitApi
     /// Anything related to the internal FaceIT API
     /// </summary>
     IFaceitInternalApiService Internal { get; }
+
+    /// <summary>
+    /// Anything related to the FaceIT chat
+    /// </summary>
+    IFaceitChat Chat { get; }
 }
 
 /// <summary>
@@ -24,9 +30,11 @@ public interface IFaceitApi
 /// </summary>
 /// <param name="_webhooks"></param>
 /// <param name="_internal"></param>
+/// <param name="_chat"></param>
 public class FaceitApi(
     IFaceitWebhookService _webhooks,
-    IFaceitInternalApiService _internal) : IFaceitApi
+    IFaceitInternalApiService _internal,
+    IFaceitChat _chat) : IFaceitApi
 {
     /// <summary>
     /// Anything related to FaceIT webhooks
@@ -37,6 +45,11 @@ public class FaceitApi(
     /// Anything related to the internal FaceIT API
     /// </summary>
     public IFaceitInternalApiService Internal => _internal;
+
+    /// <summary>
+    /// Anything related to the FaceIT chat
+    /// </summary>
+    public IFaceitChat Chat => _chat;
 
     /// <summary>
     /// Creates an instance of the <see cref="IFaceitApi"/> for use

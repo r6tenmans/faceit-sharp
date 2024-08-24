@@ -10,6 +10,8 @@
   <ItemGroup>
     <ProjectReference Include="..\FaceitSharp.Api.Internal.Models\FaceitSharp.Api.Internal.Models.csproj" />
     <ProjectReference Include="..\FaceitSharp.Api.Internal\FaceitSharp.Api.Internal.csproj" />
+    <ProjectReference Include="..\FaceitSharp.Chat.XMPP\FaceitSharp.Chat.XMPP.csproj" />
+    <ProjectReference Include="..\FaceitSharp.Chat\FaceitSharp.Chat.csproj" />
     <ProjectReference Include="..\FaceitSharp.Core\FaceitSharp.Core.csproj" />
     <ProjectReference Include="..\FaceitSharp.Webhooks\FaceitSharp.Webhooks.csproj" />
     <ProjectReference Include="..\FaceitSharp\FaceitSharp.csproj" />

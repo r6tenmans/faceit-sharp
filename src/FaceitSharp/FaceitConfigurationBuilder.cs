@@ -1,6 +1,7 @@
 ﻿namespace FaceitSharp;
 
 using Api.Internal;
+using Chat;
 using Webhooks;
 
 /// <summary>
@@ -117,6 +118,7 @@ internal class FaceitConfigurationBuilder(
         _services
             .AddHttpClient()
             .AddInternalFaceitApi()
+            .AddFaceitChat()
             .AddTransient<IFaceitApi, FaceitApi>();
     }
 }
