@@ -24,25 +24,46 @@ public class Message : Stanza
 
     public List<XmlElement> Unknown { get; } = [];
 
+    public IEnumerable<Body> Bodies => Children.OfType<Body>();
+
+    public IEnumerable<Data> Datas => Children.OfType<Data>();
+
+    public IEnumerable<Archived> Archiveds => Children.OfType<Archived>();
+
+    public IEnumerable<Reference> Mentions => Children.OfType<Reference>();
+
+    public IEnumerable<Composing> Composings => Children.OfType<Composing>();
+
+    public IEnumerable<Img> Images => Children.OfType<X>().SelectMany(t => t.Images);
+
+    public IEnumerable<JID> UserJoins => Children.OfType<X>().SelectMany(t => t.UserJoins);
+
+    public string? StrBody => string.Join("\n", Bodies.Select(b => b.Value));
+
     public Message(XmlElement element) : base(element)
+    {
+        Parse(element, Children, Unknown);
+    }
+
+    public static void Parse(XmlElement element, List<IMessageChild> children, List<XmlElement> unknown)
     {
         foreach (var obj in element.ChildNodes)
         {
             if (obj is not XmlElement child) continue;
 
             var stanza = Xml.GetStanza(child,
-                typeof(Body), typeof(Data), 
+                typeof(Body), typeof(Data),
                 typeof(Archived), typeof(Reference),
                 typeof(Composing), typeof(Read),
-                typeof(X));
+                typeof(X), typeof(Img), typeof(Item));
 
             if (stanza is null || stanza is not IMessageChild el)
             {
-                Unknown.Add(child);
+                unknown.Add(child);
                 continue;
             }
 
-            Children.Add(el);
+            children.Add(el);
         }
     }
 
@@ -50,7 +71,7 @@ public class Message : Stanza
 
     public interface IMessageChild { }
 
-    public class Body : Stanza, IMessageChild
+    public class Body(XmlElement element) : Stanza(element), IMessageChild
     {
         public string? Value
         {
@@ -59,7 +80,7 @@ public class Message : Stanza
         }
     }
 
-    public class Data : Stanza, IMessageChild
+    public class Data(XmlElement element) : Stanza(element), IMessageChild
     {
         public DateTime? Timestamp
         {
@@ -68,7 +89,7 @@ public class Message : Stanza
         }
     }
 
-    public class Archived : Stanza, IMessageChild
+    public class Archived(XmlElement element) : Stanza(element), IMessageChild
     {
         public JID? By
         {
@@ -77,7 +98,7 @@ public class Message : Stanza
         }
     }
 
-    public class Reference : Stanza, IMessageChild
+    public class Reference(XmlElement element) : Stanza(element), IMessageChild
     {
         public string? Type
         {
@@ -110,12 +131,12 @@ public class Message : Stanza
         public override string? DefaultNamespace() => Namespaces.REFERENCE;
     }
 
-    public class Composing : Stanza, IMessageChild
+    public class Composing(XmlElement element) : Stanza(element), IMessageChild
     {
         public override string? DefaultNamespace() => Namespaces.CHAT_STATES;
     }
 
-    public class Read : Stanza, IMessageChild
+    public class Read(XmlElement element) : Stanza(element), IMessageChild
     {
         public JID? Jid
         {
@@ -132,27 +153,52 @@ public class Message : Stanza
 
     public class X : Stanza, IMessageChild
     {
-        public List<JID> Items { get; } = [];
+        public List<IMessageChild> Children { get; } = [];
 
         public List<XmlElement> Unknown { get; } = [];
 
-        public X(XmlElement element) : base(element)
+        public bool IsAnnouncement => Element.GetAttr("xmlns") == Namespaces.ANNOUNCEMENTS;
+
+        public bool IsAttachments => Element.GetAttr("xmlns") == Namespaces.UPLOAD;
+
+        public IEnumerable<JID> UserJoins
         {
-            foreach(var obj in element.ChildNodes)
+            get
             {
-                if (obj is not XmlElement child) continue;
+                if (!IsAnnouncement) return [];
 
-                if (child.Name != "item")
-                {
-                    Unknown.Add(child);
-                    continue;
-                }
-
-                var jid = child.GetAttrJID("jid");
-                if (jid is not null) Items.Add(jid);
+                return Children
+                    .OfType<Item>()
+                    .Select(t => t.Jid!)
+                    .Where(t => t is not null);
             }
         }
 
+        public IEnumerable<Img> Images => Children.OfType<Img>();
+
+        public X(XmlElement element) : base(element)
+        {
+            Parse(element, Children, Unknown);
+        }
+
         public override string? DefaultNamespace() => Namespaces.ANNOUNCEMENTS;
+    }
+
+    public class Item(XmlElement element) : Stanza(element), IMessageChild
+    {
+        public JID? Jid
+        {
+            get => Element.GetAttrJID("jid");
+            set => Element.SetAttr("jid", value);
+        }
+    }
+
+    public class Img(XmlElement element) : Stanza(element), IMessageChild
+    {
+        public string? Src
+        {
+            get => Element.GetAttr("src");
+            set => Element.SetAttr("src", value);
+        }
     }
 }

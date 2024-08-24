@@ -1,74 +1,48 @@
-﻿namespace FaceitSharp.Chat;
+﻿using FaceitSharp.Chat.Rooms;
+
+namespace FaceitSharp.Chat;
 
 public interface IFaceitChatSubscriptions
 {
-    Task<IObservable<Stanza>> Subscribe(SubscriptionType type, string id,
-        bool presenceInit = false, bool presenceUpdate = false, int priority = 10);
-
-    Task<IObservable<Stanza>> OnHub(string id);
-
-    Task<IObservable<Stanza>> OnLobby(string id);
-
-    Task<IObservable<Stanza>> OnMatch(string id);
-
-    Task<IObservable<Stanza>> OnTeam(string matchId, string teamId);
+    Task<IChatRoomMatch> GetMatch(string id);
 }
 
 internal partial class FaceitChat
 {
-    private readonly Dictionary<string, Subject<Stanza>> _subscriptions = [];
+    private readonly ConcurrentDictionary<string, IChatRoom> _chatSubscriptions = [];
 
-    public async Task<IObservable<Stanza>> Subscribe(SubscriptionType type, string id, 
-        bool presenceInit = false, bool presenceUpdate = false, int priority = 10)
+    public async Task<IChatRoomMatch> GetMatch(string id)
     {
-        if (!Ready) throw new InvalidOperationException("Not ready");
+        if (_chatSubscriptions.TryGetValue(id, out var room))
+        { 
+            if (room is not IChatRoomMatch matchRoom)
+                throw new Exception($"Room is invalid, did you mean I{room.GetType().Name}?");
 
-        var subscription = ChatSubscription.Create(type, id, Current!.UserId, Jid!, presenceInit, presenceUpdate, priority);
-        var target = subscription.To.GetBareJID().ToString();
+            return matchRoom;
+        }
+        
+        var match = await _api.Matches.Get(id)
+            ?? throw new Exception("Match not found");
 
-        if (_subscriptions.TryGetValue(target, out var sub))
-            return sub.AsObservable();
-
-        var subject = new Subject<Stanza>();
-
+        var subscription = ChatSubscription.Create(SubscriptionType.Match, id, Current!.UserId, Jid!, false, false, 10);
         _ = await _chat.Send(subscription) 
-            ?? throw new Exception("Failed to subscribe to presence: " + target);
+            ?? throw new Exception("Failed to subscribe to presence: " + id);
 
-        _subscriptions.Add(target, subject);
-        return subject.AsObservable();
+        room = new ChatRoomMatch(this, _chat, _resourceId, _api, match);
+        _chatSubscriptions.TryAdd(id, room);
+        return (IChatRoomMatch)room;
     }
 
-    public async Task<IObservable<Stanza>> OnHub(string id)
-        => await Subscribe(SubscriptionType.Hub, id);
-
-    public async Task<IObservable<Stanza>> OnLobby(string id)
-        => await Subscribe(SubscriptionType.Lobby, id);
-
-    public async Task<IObservable<Stanza>> OnMatch(string id)
-        => await Subscribe(SubscriptionType.Match, id);
-
-    public async Task<IObservable<Stanza>> OnTeam(string matchId, string teamId)
-        => await Subscribe(SubscriptionType.Team, $"{matchId}_{teamId}");
+    //public async Task<IObservable<Stanza>> OnTeam(string matchId, string teamId)
+    //    => await Subscribe(SubscriptionType.Team, $"{matchId}_{teamId}");
 
     public void SubscriptionsCleanup()
     {
-        foreach (var sub in _subscriptions.Values)
-            sub.Dispose();
-
-        _subscriptions.Clear();
+        _chatSubscriptions.Clear();
     }
 
     public void SubscriptionsSetup()
     {
-        _chat
-            .StanzaReceived
-            .Subscribe(t =>
-            {
-                if (t.From is null || 
-                    !_subscriptions.TryGetValue(t.From.GetBareJID().ToString(), out var sub))
-                    return;
 
-                sub.OnNext(t);
-            });
     }
 }

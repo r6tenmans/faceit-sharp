@@ -33,6 +33,6 @@ public class ResourceIdService(
 
     public string ResourceId(string app = "new-frontend")
     {
-        return $"{_config.Chat.AppVersion}_{app}_{GetSeed()}";
+        return $"{app}_{_config.Chat.AppVersion}_{GetSeed()}";
     }
 }

@@ -96,6 +96,7 @@ public class ResponseExpected : IResponseExpected
 
     public IResponseExpected Where<T>(Func<T, bool> condition) where T : Stanza
     {
+        TypeChecks.Add(typeof(T));
         return Where(s => s is T t && condition(t));
     }
 

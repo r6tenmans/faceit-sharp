@@ -6,7 +6,7 @@ public abstract class Socket(ILogger _logger) : IAsyncDisposable, IDisposable
 {
     private WebsocketClient? _client;
     private readonly List<IDisposable> _subscriptions = [];
-    private readonly bool _logEvents = false;
+    private readonly bool _logEvents = true;
 
     public abstract string Name { get; }
 
