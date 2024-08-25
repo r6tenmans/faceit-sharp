@@ -15,7 +15,7 @@ public partial class FaceitHub
     public long CustomPrizesCount { get; set; }
 
     [JsonPropertyName("guid")]
-    public Guid Guid { get; set; }
+    public string Guid { get; set; } = string.Empty;
 
     [JsonPropertyName("game")]
     public string Game { get; set; } = string.Empty;
@@ -66,10 +66,10 @@ public partial class FaceitHub
     public bool AdminToolEnabled { get; set; }
 
     [JsonPropertyName("rulesGuid")]
-    public Guid RulesGuid { get; set; }
+    public string RulesGuid { get; set; } = string.Empty;
 
     [JsonPropertyName("organizerGuid")]
-    public Guid OrganizerGuid { get; set; }
+    public string OrganizerGuid { get; set; } = string.Empty;
 
     [JsonPropertyName("organizerName")]
     public string? OrganizerName { get; set; }
@@ -110,7 +110,7 @@ public partial class FaceitHub
     public partial class OrganizerData
     {
         [JsonPropertyName("guid")]
-        public Guid Guid { get; set; }
+        public string Guid { get; set; } = string.Empty;
 
         [JsonPropertyName("name")]
         public string? Name { get; set; }

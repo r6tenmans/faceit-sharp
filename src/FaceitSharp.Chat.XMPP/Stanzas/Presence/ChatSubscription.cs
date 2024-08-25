@@ -41,6 +41,9 @@ public class ChatSubscription : IStanzaRequest
     public static ChatSubscription Create(SubscriptionType type, string id, string userId, JID from, 
         bool presenceInit, bool presenceUpdate, int priority)
     {
+        if (type == SubscriptionType.Hub && !id.EndsWith("-general"))
+            id += "-general";
+
         var to = $"{type.ToString().ToLower()}-{id}@conference.faceit.com/{userId}";
 
         return new()

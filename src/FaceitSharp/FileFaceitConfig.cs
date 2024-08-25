@@ -1,6 +1,6 @@
 ﻿namespace FaceitSharp;
 
-using Chat;
+using Chat.Network;
 
 internal record class FileFaceitConfigConfig(string Section);
 

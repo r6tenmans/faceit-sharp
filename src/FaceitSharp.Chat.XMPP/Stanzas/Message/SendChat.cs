@@ -1,7 +1,7 @@
 ﻿
 namespace FaceitSharp.Chat.XMPP.Stanzas;
 
-public class SendGroupChat : IStanzaRequest
+public class SendChat : IStanzaRequest
 {
     public required JID To { get; set; }
 

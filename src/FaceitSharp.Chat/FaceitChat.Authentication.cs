@@ -36,7 +36,7 @@ internal partial class FaceitChat
         var token = await _config.InternalApiToken() 
             ?? throw new Exception("Failed to get token");
 
-        Current ??= await _api.Users.Me() 
+        Current ??= await _api.Me() 
             ?? throw new Exception("Failed to get user");
 
         return (Current.UserId, token);

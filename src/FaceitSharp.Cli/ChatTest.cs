@@ -1,9 +1,8 @@
-﻿namespace FaceitSharp.Cli;
+﻿using System.Reactive.Linq;
+
+namespace FaceitSharp.Cli;
 
 using Chat;
-using Chat.Rooms;
-using Chat.XMPP;
-using System.Reactive.Linq;
 
 internal class ChatTest(
     IFaceitChat _chat,
@@ -19,33 +18,45 @@ internal class ChatTest(
             return;
         }
 
-        const string matchId = "1-c87425e6-8405-4aca-9c35-dbf2a1bb4434";
+        const string matchId = "1-7b81581e-6913-4829-9b34-4dffb9420560";
+        const string hubId = "fc88246e-f1a0-46ab-a1ec-0fe1e418db7b";
 
-        var match = await _chat.GetMatch(matchId);
-        using var subscription = match.MessageReceived
-            .Subscribe(async t =>
-            {
-                _logger.LogInformation("[MATCH MESSAGE RECEVIED::{id}] >> {type} >> {data}",
-                    matchId, t.GetType().Name, t.Element.ToXmlString());
-
-                var userId = t.From?.Resource;
-                if (string.IsNullOrEmpty(userId))
-                {
-                    _logger.LogWarning("No user id found in stanza");
-                    return;
-                }
-
-                var user = await _api.Internal.Users.ById(userId);
-                if (user is null)
-                {
-                    _logger.LogWarning("User not found: {id}", userId);
-                    return;
-                }
-
-                await match.Send($"Hello there, @{user.Name}! How are you doing? I hope you're doing well @{user.Name}!", new UserMention(user.Name, user.UserId));
-            });
+        using var match = await WatchMatch(matchId);
+        using var hub = await WatchHub(hubId);
 
         _logger.LogInformation("Waiting for messages");
         await Task.Delay(-1);
+    }
+
+    public async Task<IDisposable> WatchHub(string id)
+    {
+        var hub = await _chat.GetHub(id);
+        return hub
+            .Messages
+            .Subscribe(async msg =>
+            {
+                _logger.LogInformation("MSG >> HUB >> [{time:yyyy-MM-dd HH:mm:ss}] {Name}: {Content}", 
+                    msg.Timestamp, msg.Author.Name, msg.Content);
+
+                if (!msg.MentionsCurrentUser) return;
+
+                await msg.Send($"Hello there, @{msg.Author.Name}! How's it going in {msg.Hub.Name} today? (Sorry, I can't do anything yet!)", msg.Author);
+            });
+    }
+
+    public async Task<IDisposable> WatchMatch(string id)
+    {
+        var match = await _chat.GetMatch(id);
+        return match
+            .Messages
+            .Subscribe(async msg =>
+            {
+                _logger.LogInformation("MSG >> MATCH >> [{time:yyyy-MM-dd HH:mm:ss}] {Name}: {Content}", 
+                    msg.Timestamp, msg.Author.Name, msg.Content);
+                
+                if (!msg.MentionsCurrentUser) return;
+
+                await msg.Send($"Hello there, @{msg.Author.Name}! How is the match going? (Sorry, I can't do anything yet!)", msg.Author);
+            });
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace FaceitSharp;
 
-using Chat;
+using Chat.Network;
 
 /// <summary>
 /// A static instance for <see cref="IFaceitConfig"/>

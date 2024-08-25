@@ -1,4 +1,6 @@
-﻿namespace FaceitSharp.Chat;
+﻿using FaceitSharp.Chat.Network;
+
+namespace FaceitSharp.Chat;
 
 public interface IFaceitChat : 
     IDisposable, IAsyncDisposable,
@@ -11,14 +13,20 @@ internal partial class FaceitChat(
     ILogger<FaceitChat> _logger,
     IChatSocket _chat,
     IFaceitConfig _config,
-    IFaceitInternalApiService _api,
+    IFaceitChatCacheService _api,
     IResourceIdService _resourceId) : IFaceitChat
 {
+    private readonly List<IDisposable> _disposables = [];
 
     public async ValueTask DisposeAsync()
     {
         SubscriptionsCleanup();
+        foreach (var disposable in _disposables)
+            disposable.Dispose();
+        _disposables.Clear();
+
         await _chat.DisposeAsync();
+
         GC.SuppressFinalize(this);
     }
 

@@ -1,6 +1,6 @@
 ﻿using System.Net.WebSockets;
 
-namespace FaceitSharp.Chat;
+namespace FaceitSharp.Chat.Network;
 
 public interface ISocketConfig
 {
@@ -104,7 +104,7 @@ internal class SocketConfig : ISocketConfig
                 _reconnectErrorTimeout <= 0
                     ? null
                     : TimeSpan.FromSeconds(_reconnectErrorTimeout),
-            
+
         };
     }
 }

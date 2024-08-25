@@ -1,4 +1,4 @@
-﻿namespace FaceitSharp.Chat;
+﻿namespace FaceitSharp.Chat.Network;
 
 public class EdgeSocket(
     ILogger<EdgeSocket> _logger,

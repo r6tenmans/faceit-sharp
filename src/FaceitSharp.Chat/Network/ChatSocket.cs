@@ -1,4 +1,4 @@
-﻿namespace FaceitSharp.Chat;
+﻿namespace FaceitSharp.Chat.Network;
 
 using XMPP.Stanzas;
 
@@ -80,8 +80,8 @@ public class ChatSocket(
 
         _resolvers.TryAdd(expectation, tsc);
 
-        var timeout = timeoutSec.HasValue 
-            ? TimeSpan.FromSeconds(timeoutSec.Value) 
+        var timeout = timeoutSec.HasValue
+            ? TimeSpan.FromSeconds(timeoutSec.Value)
             : TimeSpan.FromSeconds(_config.Chat.ReconnectTimeout);
 
         var ct = new CancellationTokenSource(timeout);
@@ -103,7 +103,7 @@ public class ChatSocket(
             .Distinct()
             .ToArray();
 
-        var stanza = Xml.GetStanza(element, allTypes);
+        var stanza = element.GetStanza(allTypes);
         if (stanza is null)
         {
             _receivedElementUnhandled.OnNext(element);
@@ -119,7 +119,7 @@ public class ChatSocket(
             tsc.TrySetResult(stanza);
         }
     }
-    
+
     public override Task OnMessageBinary(byte[] message)
     {
         var text = DEFAULT_ENCODING.GetString(message);

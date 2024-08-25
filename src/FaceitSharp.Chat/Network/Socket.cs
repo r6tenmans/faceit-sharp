@@ -1,12 +1,12 @@
 ﻿using System.Net.WebSockets;
 
-namespace FaceitSharp.Chat;
+namespace FaceitSharp.Chat.Network;
 
 public abstract class Socket(ILogger _logger) : IAsyncDisposable, IDisposable
 {
     private WebsocketClient? _client;
     private readonly List<IDisposable> _subscriptions = [];
-    private readonly bool _logEvents = true;
+    private readonly bool _logEvents = false;
 
     public abstract string Name { get; }
 
@@ -74,7 +74,7 @@ public abstract class Socket(ILogger _logger) : IAsyncDisposable, IDisposable
                 {
                     try
                     {
-                        if (Debug) _logger.LogDebug("[SOCKET::{name}] >> MESSAGE RECEIVED >> {type} >> {value}", 
+                        if (Debug) _logger.LogDebug("[SOCKET::{name}] >> MESSAGE RECEIVED >> {type} >> {value}",
                                 Name, t.MessageType.ToString(), t.Text ?? "Binary Data");
                         await OnMessage(t);
                     }

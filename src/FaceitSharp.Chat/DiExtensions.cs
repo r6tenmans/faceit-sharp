@@ -1,4 +1,6 @@
-﻿namespace FaceitSharp.Chat;
+﻿using FaceitSharp.Chat.Network;
+
+namespace FaceitSharp.Chat;
 
 public static class DiExtensions
 {
@@ -7,6 +9,7 @@ public static class DiExtensions
         return services
             .AddSingleton<IChatSocket, ChatSocket>()
             .AddSingleton<IFaceitChat, FaceitChat>()
-            .AddSingleton<IResourceIdService, ResourceIdService>();
+            .AddSingleton<IResourceIdService, ResourceIdService>()
+            .AddSingleton<IFaceitChatCacheService, FaceitChatCacheService>();
     }
 }
