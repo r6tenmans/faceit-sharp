@@ -13,7 +13,7 @@
 		<RepositoryUrl>https://github.com/r6tenmans/faceit-sharp</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageIcon>icon.png</PackageIcon>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageReadmeFile>README.md</PackageReadmeFile>

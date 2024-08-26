@@ -3,7 +3,7 @@
 /// <summary>
 /// Base properties for anything sent in a chat room
 /// </summary>
-public interface IRoom
+public interface IMessageEvent
 {
     /// <summary>
     /// The Jabber ID of the sender
@@ -29,12 +29,22 @@ public interface IRoom
     /// The user who sent the message
     /// </summary>
     FaceitUser Author { get; }
+
+    /// <summary>
+    /// Indicates the type of context the message was sent in
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ContextType.Hub"/> will result in a <see cref="IHubMessage"/>
+    /// <see cref="ContextType.Match"/> will result in a <see cref="IMatchMessage"/>
+    /// <see cref="ContextType.Team"/> will result in a <see cref="ITeamMessage"/>
+    /// </remarks>
+    ContextType Context { get; }
 }
 
 /// <summary>
 /// Indicates that the room event was sent in a match
 /// </summary>
-public interface IRoomMatch : IRoom
+public interface IMatchEvent : IMessageEvent
 {
     /// <summary>
     /// The match that the message was sent in
@@ -45,18 +55,18 @@ public interface IRoomMatch : IRoom
 /// <summary>
 /// Indicates that the room event was sent in a team chat
 /// </summary>
-public interface IRoomTeam : IRoomMatch
+public interface ITeamEvent : IMatchEvent
 {
     /// <summary>
     /// The team that the message was sent to
     /// </summary>
-    FaceitMatch.FaceitTeam Team { get; }
+    FaceitTeam Team { get; }
 }
 
 /// <summary>
 /// Indicates that the room event was sent in a hub chat
 /// </summary>
-public interface IRoomHub : IRoom
+public interface IHubEvent : IMessageEvent
 {
     /// <summary>
     /// The hub the message was sent in
@@ -64,11 +74,11 @@ public interface IRoomHub : IRoom
     FaceitHub Hub { get; }
 }
 
-internal abstract class Room : IRoomTeam, IRoomHub
+internal abstract class MessageEvent : ITeamEvent, IHubEvent
 {
     private FaceitHub? _hub;
     private FaceitMatch? _match;
-    private FaceitMatch.FaceitTeam? _team;
+    private FaceitTeam? _team;
 
     public virtual required JID From { get; init; }
 
@@ -80,13 +90,15 @@ internal abstract class Room : IRoomTeam, IRoomHub
 
     public virtual required string? ResourceId { get; init; }
 
+    public virtual required ContextType Context { get; init; }
+
     public virtual FaceitMatch Match
     {
         get => _match ?? throw new InvalidOperationException("Match is not set");
         set => _match = value;
     }
 
-    public virtual FaceitMatch.FaceitTeam Team
+    public virtual FaceitTeam Team
     {
         get => _team ?? throw new InvalidOperationException("Team is not set");
         set => _team = value;

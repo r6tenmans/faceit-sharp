@@ -2,6 +2,10 @@
 
 public class ChatSubscription : IStanzaRequest
 {
+    public static bool DefaultPresenceInit { get; set; } = false;
+    public static bool DefaultPresenceUpdate { get; set; } = false;
+    public static int DefaultPriority { get; set; } = 10;
+
     public required JID To { get; init; }
 
     public required JID From { get; init; }
@@ -38,8 +42,24 @@ public class ChatSubscription : IStanzaRequest
             x, unsubscribe, priority);
     }
 
-    public static ChatSubscription Create(SubscriptionType type, string id, string userId, JID from, 
-        bool presenceInit, bool presenceUpdate, int priority)
+    public static ChatSubscription Create(JID to, JID currentUser, 
+        bool? presenceInit = null, bool? presenceUpdate = null, int? priority = null)
+    {
+        var userId = currentUser.Node ?? string.Empty;
+        var newTo = new JID(to.Domain, to.Node, userId);
+
+        return new()
+        {
+            To = newTo,
+            From = currentUser,
+            InitialPresences = presenceInit ?? DefaultPresenceInit,
+            PresenceUpdates = presenceUpdate ?? DefaultPresenceUpdate,
+            Priority = priority ?? DefaultPriority
+        };
+    }
+
+    public static ChatSubscription Create(SubscriptionType type, string id, string userId, JID from,
+        bool? presenceInit = null, bool? presenceUpdate = null, int? priority = null)
     {
         if (type == SubscriptionType.Hub && !id.EndsWith("-general"))
             id += "-general";
@@ -50,9 +70,9 @@ public class ChatSubscription : IStanzaRequest
         {
             To = to!,
             From = from,
-            InitialPresences = presenceInit,
-            PresenceUpdates = presenceUpdate,
-            Priority = priority
+            InitialPresences = presenceInit ?? DefaultPresenceInit,
+            PresenceUpdates = presenceUpdate ?? DefaultPresenceUpdate,
+            Priority = priority ?? DefaultPriority
         };
     }
 }

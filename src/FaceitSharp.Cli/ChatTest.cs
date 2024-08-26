@@ -5,8 +5,7 @@ namespace FaceitSharp.Cli;
 using Chat;
 
 internal class ChatTest(
-    IFaceitChat _chat,
-    IFaceitApi _api,
+    IFaceitChatClient _chat,
     ILogger<ChatTest> _logger) : ITest
 {
     public async Task Run()
@@ -30,7 +29,7 @@ internal class ChatTest(
 
     public async Task<IDisposable> WatchHub(string id)
     {
-        var hub = await _chat.GetHub(id);
+        var hub = await _chat.Messages.HubChat(id);
         return hub
             .Messages
             .Subscribe(async msg =>
@@ -40,13 +39,13 @@ internal class ChatTest(
 
                 if (!msg.MentionsCurrentUser) return;
 
-                await msg.Send($"Hello there, @{msg.Author.Name}! How's it going in {msg.Hub.Name} today? (Sorry, I can't do anything yet!)", msg.Author);
+                await msg.Send($"Hello there, @{msg.Author.Name} ! How's it going in {msg.Hub.Name} today? (Sorry, I can't do anything yet!)", msg.Author);
             });
     }
 
     public async Task<IDisposable> WatchMatch(string id)
     {
-        var match = await _chat.GetMatch(id);
+        var match = await _chat.Messages.MatchRoom(id);
         return match
             .Messages
             .Subscribe(async msg =>

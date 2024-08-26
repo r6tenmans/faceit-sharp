@@ -23,9 +23,9 @@ public interface ITeamReplyMessage : IMatchReplyMessage, ITeamMessage { }
 internal class ReplyMessage(
     JID _id,
     RoomMessage _original,
-    IFaceitChat _chat) : ITeamReplyMessage, IHubReplyMessage
+    IFaceitChatClient _chat) : ITeamReplyMessage, IHubReplyMessage
 {
-    public MessageType MessageType => _original.MessageType;
+    public ContextType Context => _original.Context;
 
     public bool LeftSide => _original.LeftSide;
 
@@ -41,7 +41,7 @@ internal class ReplyMessage(
 
     public bool MentionsCurrentUser => _original.MentionsCurrentUser;
 
-    public FaceitMatch.FaceitTeam Team => _original.Team;
+    public FaceitTeam Team => _original.Team;
 
     public FaceitMatch Match => _original.Match;
 
@@ -58,15 +58,15 @@ internal class ReplyMessage(
     public FaceitHub Hub => _original.Hub;
 
     public Task<Message> Send(string message, params UserMention[] mentions)
-        => _chat.SendGroupMessage(_id, message, mentions);
+        => _chat.Messages.Send(_id, message, [], mentions);
 
     public Task<Message> Send(string message, string[] images, params UserMention[] mentions)
-        => _chat.SendGroupMessage(_id, message, images, mentions);
+        => _chat.Messages.Send(_id, message, images, mentions);
 
     public override string ToString()
     {
         var msgContent = $"[{Timestamp:yyyy-MM-dd HH:mm:ss zzz}] {Author.Name}: {Content}";
-        foreach(var image in AttachedImages)
+        foreach (var image in AttachedImages)
             msgContent += $"\r\n\t{image}";
 
         return msgContent;

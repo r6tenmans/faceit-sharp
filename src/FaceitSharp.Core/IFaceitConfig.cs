@@ -21,11 +21,11 @@ public interface IFaceitSocketConfig
 {
     string Uri { get; }
 
-    int ReconnectTimeout { get; }
+    double ReconnectTimeout { get; }
 
-    int ReconnectTimeoutError { get; }
+    double ReconnectTimeoutError { get; }
 
-    int KeepAliveInterval { get; }
+    double KeepAliveInterval { get; }
 
     double ResponseTimeout { get; }
 

@@ -1,6 +1,6 @@
 ﻿namespace FaceitSharp;
 
-using Chat.Network;
+using Chat;
 
 /// <summary>
 /// A static instance for <see cref="IFaceitConfig"/>
@@ -23,13 +23,13 @@ public record class StaticFaceitConfig(
     bool LogWebHooks = true,
     bool InternalApiErrors = true,
     string InternalApiUrl = "https://api.faceit.com",
-    string ChatUrl = ChatSocket.DEFAULT_URI,
-    string EdgeUrl = EdgeSocket.DEFAULT_URI,
-    int ReconnectSeconds = ChatSocket.DEFAULT_RECONNECT,
-    int ReconnectErrorSeconds = ChatSocket.DEFAULT_RECONNECT_ERROR,
-    int KeepAliveSeconds = ChatSocket.DEFAULT_KEEP_ALIVE,
-    double ResponseTimeoutSeconds = ChatSocket.DEFAULT_RESPONSE_TIMEOUT,
-    string AppVersion = ChatSocket.DEFAULT_APP_VERSION) : IFaceitConfig
+    string ChatUrl = Constants.CHAT_URI,
+    string EdgeUrl = Constants.CHAT_URI,
+    double ReconnectSeconds = Constants.CHAT_RECONNECT,
+    double ReconnectErrorSeconds = Constants.CHAT_RECONNECT_ERROR,
+    double KeepAliveSeconds = Constants.CHAT_KEEP_ALIVE,
+    double ResponseTimeoutSeconds = Constants.CHAT_REQUEST_TIMEOUT,
+    string AppVersion = Constants.CHAT_APP_VERSION) : IFaceitConfig
 {
     /// <summary>
     /// Resolves the <see cref="ApiToken"/>
@@ -56,8 +56,8 @@ public record class StaticFaceitConfig(
 
 internal record class StaticFaceitSocketConfig(
     string Uri,
-    int ReconnectTimeout,
-    int ReconnectTimeoutError,
-    int KeepAliveInterval,
+    double ReconnectTimeout,
+    double ReconnectTimeoutError,
+    double KeepAliveInterval,
     double ResponseTimeout,
     string AppVersion) : IFaceitSocketConfig { }

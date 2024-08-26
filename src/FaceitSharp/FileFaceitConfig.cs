@@ -1,6 +1,6 @@
 ﻿namespace FaceitSharp;
 
-using Chat.Network;
+using Chat;
 
 internal record class FileFaceitConfigConfig(string Section);
 
@@ -15,16 +15,16 @@ internal class FileFaceitConfig(
     public bool LogWebHooks => Setting(nameof(LogWebHooks), "true") == "true";
 
     public IFaceitSocketConfig Edge => new FileFaceitSocketConfig(
-        _config, _static, nameof(Edge), 
-        EdgeSocket.DEFAULT_URI, EdgeSocket.DEFAULT_RECONNECT,
-        EdgeSocket.DEFAULT_RECONNECT_ERROR, EdgeSocket.DEFAULT_KEEP_ALIVE,
-        ChatSocket.DEFAULT_RESPONSE_TIMEOUT, string.Empty);
+        _config, _static, nameof(Edge),
+        Constants.CHAT_URI, Constants.CHAT_RECONNECT,
+        Constants.CHAT_RECONNECT_ERROR, Constants.CHAT_KEEP_ALIVE,
+        Constants.CHAT_REQUEST_TIMEOUT, Constants.CHAT_APP_VERSION);
 
     public IFaceitSocketConfig Chat => new FileFaceitSocketConfig(
-        _config, _static, nameof(Chat), 
-        ChatSocket.DEFAULT_URI, ChatSocket.DEFAULT_RECONNECT,
-        ChatSocket.DEFAULT_RECONNECT_ERROR, ChatSocket.DEFAULT_KEEP_ALIVE,
-        ChatSocket.DEFAULT_RESPONSE_TIMEOUT, ChatSocket.DEFAULT_APP_VERSION);
+        _config, _static, nameof(Chat),
+        Constants.CHAT_URI, Constants.CHAT_RECONNECT,
+        Constants.CHAT_RECONNECT_ERROR, Constants.CHAT_KEEP_ALIVE,
+        Constants.CHAT_REQUEST_TIMEOUT, Constants.CHAT_APP_VERSION);
 
     public Task<string> InternalApiToken()
     {
@@ -52,19 +52,19 @@ internal class FileFaceitSocketConfig(
     FileFaceitConfigConfig _static,
     string _section,
     string _defaultUri,
-    int _defaultReconnect,
-    int _defaultReconnectError,
-    int _defaultKeepAlive,
+    double _defaultReconnect,
+    double _defaultReconnectError,
+    double _defaultKeepAlive,
     double _defaultResponseTimeout,
     string _defaultAppVersion) : IFaceitSocketConfig
 {
     public string Uri => Setting(nameof(Uri), _defaultUri) ?? _defaultUri;
 
-    public int ReconnectTimeout => Setting(nameof(ReconnectTimeout), _defaultReconnect);
+    public double ReconnectTimeout => Setting(nameof(ReconnectTimeout), _defaultReconnect);
 
-    public int ReconnectTimeoutError => Setting(nameof(ReconnectTimeoutError), _defaultReconnectError);
+    public double ReconnectTimeoutError => Setting(nameof(ReconnectTimeoutError), _defaultReconnectError);
 
-    public int KeepAliveInterval => Setting(nameof(KeepAliveInterval), _defaultKeepAlive);
+    public double KeepAliveInterval => Setting(nameof(KeepAliveInterval), _defaultKeepAlive);
 
     public double ResponseTimeout => Setting(nameof(ResponseTimeout), _defaultResponseTimeout);
 
