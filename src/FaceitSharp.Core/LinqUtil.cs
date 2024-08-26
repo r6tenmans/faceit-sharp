@@ -1,7 +1,17 @@
 ﻿namespace FaceitSharp.Core;
 
+/// <summary>
+/// Utility for working with Linq
+/// </summary>
 public static class LinqUtil
 {
+    /// <summary>
+    /// Shortcut for string.Join
+    /// </summary>
+    /// <typeparam name="T">The type of item</typeparam>
+    /// <param name="input">The items</param>
+    /// <param name="joiner">What to join with</param>
+    /// <returns>The outputted string</returns>
     public static string StrJoin<T>(this IEnumerable<T> input, string joiner = " ")
     {
         return string.Join(joiner, input);

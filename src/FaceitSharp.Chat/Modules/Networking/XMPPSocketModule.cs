@@ -39,7 +39,7 @@ public interface IXMPPSocketModule : ISocketModule
     /// <param name="instant">Whether to send the message instantly or queue it</param>
     /// <param name="timeoutSec">The number of seconds to wait before timing out the response request</param>
     /// <returns>The stanza that was received in response to the sent message</returns>
-    Task<Stanza> Send(IStanzaRequest request, bool instant = false, double timeoutSec = 3);
+    Task<Stanza> Send(IStanzaRequest request, bool instant = false, double? timeoutSec = null);
 
     /// <summary>
     /// Indicates that a specific response is expected
@@ -47,7 +47,7 @@ public interface IXMPPSocketModule : ISocketModule
     /// <param name="expectation">The expectation</param>
     /// <param name="timeoutSec">The number of seconds to wait before timing out</param>
     /// <returns>The stanza that was received in response to the sent message</returns>
-    Task<Stanza> Expect(IResponseExpected expectation, double timeoutSec);
+    Task<Stanza> Expect(IResponseExpected expectation, double? timeoutSec = null);
 }
 
 internal class XMPPSocketModule(
@@ -83,7 +83,7 @@ internal class XMPPSocketModule(
         return Send(element.ToXmlString(), instant);
     }
 
-    public async Task<Stanza> Send(IStanzaRequest request, bool instant = false, double timeoutSec = 3)
+    public async Task<Stanza> Send(IStanzaRequest request, bool instant = false, double? timeoutSec = null)
     {
         var expectation = new ResponseExpected();
         request.Expects(expectation);
@@ -92,11 +92,13 @@ internal class XMPPSocketModule(
         return await task;
     }
 
-    public async Task<Stanza> Expect(IResponseExpected expectation, double timeoutSec)
+    public async Task<Stanza> Expect(IResponseExpected expectation, double? timeoutSec = null)
     {
         var tsc = new TaskCompletionSource<Stanza>();
         _resolvers.TryAdd(expectation, tsc);
-        var timeout = TimeSpan.FromSeconds(timeoutSec);
+        var timeout = timeoutSec is null 
+            ? Config.Chat.RequestTimeout
+            : TimeSpan.FromSeconds(timeoutSec.Value);
 
         var ct = new CancellationTokenSource(timeout);
         ct.Token.Register(() =>
@@ -107,9 +109,9 @@ internal class XMPPSocketModule(
         return await tsc.Task;
     }
 
-    public Task<bool> Connect(IFaceitConfig config)
+    public Task<bool> Connect()
     {
-        return Connect(config.Chat, Constants.CHAT_PROTOCOL, true);
+        return Connect(Config.Chat, Config.Chat.Protocol, true);
     }
 
     public override Task OnSetup()

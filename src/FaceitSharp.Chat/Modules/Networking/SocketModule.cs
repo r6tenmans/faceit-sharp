@@ -55,6 +55,7 @@ internal abstract class SocketModule(
     private Encoding _encoding = Encoding.UTF8;
 
     public IObservable<string> SocketMessages => _socketMessage.AsObservable();
+
     public IObservable<SocketEvent> SocketEvents => _socketEvents.AsObservable();
 
     public IObservable<ISocketEventConnect> ConnectionEvents
@@ -62,14 +63,18 @@ internal abstract class SocketModule(
             x.Type == SocketEventType.ConnectionFailed ||
             x.Type == SocketEventType.Connecting ||
             x.Type == SocketEventType.Connected);
+
     public IObservable<ISocketEventConnect> ConnectionEstablished
         => ConnectionEvents.Where(x => x.Type == SocketEventType.Connected);
+
     public IObservable<ISocketEventReconnect> ReconnectionEvents
         => SocketEvents.Where(x =>
             x.Type == SocketEventType.Reconnecting ||
             x.Type == SocketEventType.Reconnected);
+
     public IObservable<ISocketEventReconnect> ConnectionReestablished
         => ReconnectionEvents.Where(x => x.Type == SocketEventType.Reconnected);
+
     public IObservable<ISocketEventDisconnect> Disconnected
         => SocketEvents.Where(x => x.Type == SocketEventType.Disconnected);
 
@@ -108,13 +113,14 @@ internal abstract class SocketModule(
         }
     }
 
-    public virtual Task<bool> Connect(IFaceitSocketConfig config, string protocol, bool reconnects)
+    public virtual Task<bool> Connect(FaceitConfigSocket config, string protocol, bool reconnects)
     {
         return Connect(x => x
-            .WithUri(config.Uri)
-            .WithReconnectTimeout(config.ReconnectTimeout)
-            .WithReconnectTimeoutError(config.ReconnectTimeoutError)
-            .WithKeepAliveInterval(config.KeepAliveInterval)
+            .WithUri(config.Url)
+            .WithEncoding(config.Encoding)
+            .WithReconnectTimeout(config.Reconnect)
+            .WithReconnectTimeoutError(config.ReconnectError)
+            .WithKeepAliveInterval(config.KeepAlive)
             .WithProtocol(protocol)
             .WithReconnects(reconnects));
     }
@@ -127,7 +133,7 @@ internal abstract class SocketModule(
             config(bob);
             _client = bob.Create();
             _client.Name = ModuleName;
-            _encoding = bob.Encoder is null ? _encoding : bob.Encoder;
+            _encoding = bob.Encoder ?? _encoding;
             _client.MessageEncoding = _encoding;
 
             Manage(_client

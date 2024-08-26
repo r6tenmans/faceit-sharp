@@ -79,24 +79,7 @@ public class FaceitApi(
     /// Prefer using FaceITSharp in concert with the standard dependency injection schema,
     /// instead of creating instances manually.
     /// </remarks>
-    public static IFaceitApi Create(IFaceitConfig config)
-    {
-        return Create((x, s) =>
-        {
-            x.WithConfig(config);
-        });
-    }
-
-    /// <summary>
-    /// Creates an instance of the <see cref="IFaceitApi"/> for use
-    /// </summary>
-    /// <param name="config">The FaceIT configuration</param>
-    /// <returns>The FaceIT api instance</returns>
-    /// <remarks>
-    /// Prefer using FaceITSharp in concert with the standard dependency injection schema,
-    /// instead of creating instances manually.
-    /// </remarks>
-    public static IFaceitApi Create(StaticFaceitConfig config)
+    public static IFaceitApi Create(FaceitConfig config)
     {
         return Create((x, s) =>
         {

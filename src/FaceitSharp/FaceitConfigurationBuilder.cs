@@ -30,7 +30,7 @@ public interface IFaceitConfigurationBuilder
     /// </summary>
     /// <param name="config">The FaceIT service configuration</param>
     /// <returns>The builder for chaining</returns>
-    IFaceitConfigurationBuilder WithConfig(IFaceitConfig config);
+    IFaceitConfigurationBuilder WithConfig(FaceitConfig config);
 
     /// <summary>
     /// Indicates that the configuration should be loaded from the given section in the (already registered) <see cref="IConfiguration"/>
@@ -38,13 +38,6 @@ public interface IFaceitConfigurationBuilder
     /// <param name="section">The section of the configuration to use</param>
     /// <returns>The builder for chaining</returns>
     IFaceitConfigurationBuilder WithConfig(string section = "Faceit");
-
-    /// <summary>
-    /// Registers the given configuration object with the service collection
-    /// </summary>
-    /// <param name="config">The FaceIT service configuration</param>
-    /// <returns>The builder for chaining</returns>
-    IFaceitConfigurationBuilder WithConfig(StaticFaceitConfig config);
 
     /// <summary>
     /// Registers the a static configuration using the given api token and user-agent
@@ -87,7 +80,7 @@ internal class FaceitConfigurationBuilder(
     #endregion
 
     #region Configuration
-    public IFaceitConfigurationBuilder WithConfig(IFaceitConfig config)
+    public IFaceitConfigurationBuilder WithConfig(FaceitConfig config)
     {
         _hasConfig = true;
         _services.AddSingleton(config);
@@ -97,16 +90,21 @@ internal class FaceitConfigurationBuilder(
     public IFaceitConfigurationBuilder WithConfig(string section = "Faceit")
     {
         _hasConfig = true;
-        _services.AddTransient<IFaceitConfig, FileFaceitConfig>();
-        _services.AddSingleton(new FileFaceitConfigConfig(section));
+        _services.AddSingleton(provider =>
+        {
+            var config = provider.GetRequiredService<IConfiguration>();
+            return new FaceitConfig(config.GetSection(section));
+        });
         return this;
     }
 
-    public IFaceitConfigurationBuilder WithConfig(StaticFaceitConfig config) 
-        => WithConfig((IFaceitConfig)config);
-
     public IFaceitConfigurationBuilder WithConfig(string apiToken, string userAgent)
-        => WithConfig(new StaticFaceitConfig(apiToken, userAgent));
+    {
+        var config = new FaceitConfig();
+        config.Internal.Token = () => Task.FromResult(apiToken);
+        config.Internal.UserAgent = () => Task.FromResult(userAgent);
+        return WithConfig(config);
+    }
     #endregion
 
     public void Register()

@@ -27,21 +27,21 @@ public interface ISocketConfig
     /// </summary>
     /// <param name="timeout">The number of seconds to wait</param>
     /// <returns>The config builder for chaining</returns>
-    ISocketConfig WithReconnectTimeout(double timeout);
+    ISocketConfig WithReconnectTimeout(TimeSpan timeout);
 
     /// <summary>
     /// Sets the reconnect timeout to use for the connection when an error occurs
     /// </summary>
     /// <param name="timeout">The number of seconds to wait</param>
     /// <returns>The config builder for chaining</returns>
-    ISocketConfig WithReconnectTimeoutError(double timeout);
+    ISocketConfig WithReconnectTimeoutError(TimeSpan timeout);
 
     /// <summary>
     /// Sets the interval to use for waiting between messages to keep the connection alive
     /// </summary>
     /// <param name="interval">The number of seconds to wait</param>
     /// <returns>The config builder for chaining</returns>
-    ISocketConfig WithKeepAliveInterval(double interval);
+    ISocketConfig WithKeepAliveInterval(TimeSpan interval);
 
     /// <summary>
     /// Configures the underlying web socket options
@@ -76,9 +76,9 @@ public interface ISocketConfig
 internal class SocketConfig : ISocketConfig
 {
     private Uri? _uri;
-    private double _reconnectTimeout = 35;
-    private double _keepAliveInterval = 35;
-    private double _reconnectErrorTimeout = 35;
+    private TimeSpan? _reconnectTimeout;
+    private TimeSpan? _keepAliveInterval;
+    private TimeSpan? _reconnectErrorTimeout;
     private string? _protocol;
     private readonly List<Action<ClientWebSocketOptions>> _webSocketConfig = [];
     private ILogger<WebsocketClient>? _logger;
@@ -119,19 +119,19 @@ internal class SocketConfig : ISocketConfig
         return this;
     }
 
-    public ISocketConfig WithReconnectTimeout(double timeout)
+    public ISocketConfig WithReconnectTimeout(TimeSpan timeout)
     {
         _reconnectTimeout = timeout;
         return this;
     }
 
-    public ISocketConfig WithReconnectTimeoutError(double timeout)
+    public ISocketConfig WithReconnectTimeoutError(TimeSpan timeout)
     {
         _reconnectErrorTimeout = timeout;
         return this;
     }
 
-    public ISocketConfig WithKeepAliveInterval(double interval)
+    public ISocketConfig WithKeepAliveInterval(TimeSpan interval)
     {
         _keepAliveInterval = interval;
         return this;
@@ -153,7 +153,7 @@ internal class SocketConfig : ISocketConfig
             {
                 Options =
                 {
-                    KeepAliveInterval = TimeSpan.FromSeconds(_keepAliveInterval),
+                    KeepAliveInterval = _keepAliveInterval ?? TimeSpan.FromSeconds(35),
                 },
             };
             if (!string.IsNullOrEmpty(_protocol))
@@ -166,14 +166,8 @@ internal class SocketConfig : ISocketConfig
         return new WebsocketClient(_uri, _logger, ClientFactory)
         {
             IsReconnectionEnabled = !_noReconnects,
-            ReconnectTimeout =
-                _reconnectTimeout <= 0
-                    ? null
-                    : TimeSpan.FromSeconds(_reconnectTimeout),
-            ErrorReconnectTimeout =
-                _reconnectErrorTimeout <= 0
-                    ? null
-                    : TimeSpan.FromSeconds(_reconnectErrorTimeout),
+            ReconnectTimeout = _reconnectTimeout,
+            ErrorReconnectTimeout = _reconnectErrorTimeout,
 
         };
     }

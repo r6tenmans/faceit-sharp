@@ -168,6 +168,8 @@ internal abstract class ChatModule(
     ILogger _logger,
     IFaceitChatClient _client) : IChatModule
 {
+    public FaceitConfig Config => _client.Config;
+
     public List<IDisposable> Disposables { get; } = [];
 
     public virtual bool RethrowExceptions => false;

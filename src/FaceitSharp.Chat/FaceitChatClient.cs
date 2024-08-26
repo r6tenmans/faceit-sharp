@@ -16,7 +16,7 @@ public interface IFaceitChatClient : IAsyncDisposable, IDisposable
     /// <summary>
     /// The config for the client
     /// </summary>
-    IFaceitConfig Config { get; }
+    FaceitConfig Config { get; }
 
     /// <summary>
     /// Anything related to the underlying connection
@@ -74,7 +74,7 @@ public interface IFaceitChatClient : IAsyncDisposable, IDisposable
     /// If the client has already been setup, the <see cref="IChatModule.OnSetup"/> method will be called immediately and awaited
     /// If the client is already connected, the <see cref="IChatModule.OnConnected"/> method will be called immediately and awaited
     /// </remarks>
-    IFaceitChatClient AddModule(Func<IFaceitChatClient, ILogger, IFaceitConfig, IChatModule> bob);
+    IFaceitChatClient AddModule(Func<IFaceitChatClient, ILogger, FaceitConfig, IChatModule> bob);
     #endregion
 
     /// <summary>
@@ -94,7 +94,7 @@ public interface IFaceitChatClient : IAsyncDisposable, IDisposable
 }
 
 internal class FaceitChatClient(
-    IFaceitConfig _config,
+    FaceitConfig _config,
     IResourceIdService _resourceId,
     IFaceitInternalApiService _api,
     ILogger<FaceitChatClient> _logger) : IFaceitChatClient
@@ -104,7 +104,7 @@ internal class FaceitChatClient(
     private readonly List<IChatModule> _customModules = [];
     public readonly List<IDisposable> _disposables = [];
 
-    public IFaceitConfig Config => _config;
+    public FaceitConfig Config => _config;
 
     public bool Ready => Connection.Connected && Auth.LoggedIn;
 
@@ -144,7 +144,8 @@ internal class FaceitChatClient(
 
         if (!Connection.Connected)
         {
-            var worked = await InternalConnection.Connect(_config);
+            InternalAuth.Logout();
+            var worked = await InternalConnection.Connect();
             if (!worked) return false;
         }
 
@@ -202,7 +203,7 @@ internal class FaceitChatClient(
         return this;
     }
 
-    public IFaceitChatClient AddModule(Func<IFaceitChatClient, ILogger, IFaceitConfig, IChatModule> bob)
+    public IFaceitChatClient AddModule(Func<IFaceitChatClient, ILogger, FaceitConfig, IChatModule> bob)
     {
         var module = bob(this, _logger, _config);
         return AddModule(module);

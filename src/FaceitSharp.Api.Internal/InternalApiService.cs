@@ -21,20 +21,20 @@ internal class InternalApiService(
     IHttpClientFactory httpFactory,
     IFaceitJsonService json,
     IFaceitCacheService cache,
-    IFaceitConfig _config,
+    FaceitConfig _config,
     ILogger<InternalApiService> _logger) 
         : ApiService(httpFactory, json, cache, _logger), IInternalApiService
 {
     public string MarryURLs(string url)
     {
         if (url.StartsWith("http", StringComparison.InvariantCultureIgnoreCase)) return url;
-        return $"{_config.InternalApiUrl.TrimEnd('/')}/{url.TrimStart('/')}";
+        return $"{_config.Internal.Url.TrimEnd('/')}/{url.TrimStart('/')}";
     }
 
     public async Task<(string Token, string UserAgent)> GetConfig()
     {
-        var token = _config.InternalApiToken();
-        var userAgent = _config.InternalUserAgent();
+        var token = _config.Internal.Token();
+        var userAgent = _config.Internal.UserAgent();
         await Task.WhenAll(token, userAgent);
         return (token.Result, userAgent.Result);
     }
@@ -64,7 +64,7 @@ internal class InternalApiService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while running faceit get request: {url}", url);
-            if (_config.InternalApiErrors)
+            if (_config.Internal.ThrowErrors)
                 throw;
             return default;
         }
@@ -82,7 +82,7 @@ internal class InternalApiService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while running faceit get request: {url}", url);
-            if (_config.InternalApiErrors)
+            if (_config.Internal.ThrowErrors)
                 throw;
             return [];
         }
@@ -100,7 +100,7 @@ internal class InternalApiService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while running faceit put request: {url}", url);
-            if (_config.InternalApiErrors)
+            if (_config.Internal.ThrowErrors)
                 throw;
             return default;
         }
@@ -118,7 +118,7 @@ internal class InternalApiService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while running faceit post request: {url}", url);
-            if (_config.InternalApiErrors)
+            if (_config.Internal.ThrowErrors)
                 throw;
             return default;
         }
@@ -136,7 +136,7 @@ internal class InternalApiService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while running faceit delete request: {url}", url);
-            if (_config.InternalApiErrors)
+            if (_config.Internal.ThrowErrors)
                 throw;
             return default;
         }
@@ -152,7 +152,7 @@ internal class InternalApiService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while running faceit delete request: {url}", url);
-            if (_config.InternalApiErrors)
+            if (_config.Internal.ThrowErrors)
                 throw;
             return default;
         }

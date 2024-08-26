@@ -10,7 +10,7 @@ public interface IResourceIdService
 }
 
 public class ResourceIdService(
-    IFaceitConfig _config) : IResourceIdService
+    FaceitConfig _config) : IResourceIdService
 {
     public Random Random { get; private set; } = new();
 

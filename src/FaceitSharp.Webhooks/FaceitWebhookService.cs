@@ -21,7 +21,7 @@ public interface IFaceitWebhookService
 internal class FaceitWebhookService(
     IServiceProvider _provider,
     ILogger<FaceitWebhookService> _logger,
-    IFaceitConfig _config) : IFaceitWebhookService
+    FaceitConfig _config) : IFaceitWebhookService
 {
     public IEnumerable<IFaceitWebhookEventHandler> GetHandlers()
     {
@@ -42,7 +42,7 @@ internal class FaceitWebhookService(
     {
         var handlers = GetHandlers();
 
-        if (_config.LogWebHooks)
+        if (_config.Webhooks.LogHooks)
             _logger.LogInformation("[FACEIT WEBHOOK] [event::{event}] >> {id} - Received", 
                 webhook.Event, webhook.TransactionId);
 

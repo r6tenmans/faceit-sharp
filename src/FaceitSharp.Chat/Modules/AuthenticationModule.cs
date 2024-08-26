@@ -51,7 +51,7 @@ internal class AuthenticationModule(
 
     public async Task<(string userId, string token)> GetLoginInfo()
     {
-        var token = await _client.Config.InternalApiToken() 
+        var token = await _client.Config.Internal.Token() 
             ?? throw new Exception("Failed to get token");
 
         _currentUser ??= await _client.Cache.Me()
@@ -139,6 +139,8 @@ internal class AuthenticationModule(
         _currentUser = null;
         _jid = null;
         _pingSource.Cancel();
+        _pingSource = new();
+        _pinging = null;
         _hasLoggedIn = false;
     }
 
@@ -158,8 +160,7 @@ internal class AuthenticationModule(
                     && !_pinging.Value.IsCancellationRequested 
                     && LoggedIn)
                 {
-                    var timeout = TimeSpan.FromSeconds(Constants.CHAT_PING_INTERVAL);
-                    await Task.Delay(timeout, _pinging.Value);
+                    await Task.Delay(Config.Chat.PingInterval, _pinging.Value);
 
                     var id = _resourceId.Next();
                     var result = await _client.Connection.Send(Ping.Create(id));

@@ -159,8 +159,8 @@ internal class MatchRoom(
         _leftId = left;
         _rightId = right;
 
-        _left = match.Teams.TryGetValue(Constants.CHAT_FACTION_LEFT, out var team) ? team : null;
-        _right = match.Teams.TryGetValue(Constants.CHAT_FACTION_RIGHT, out team) ? team : null;
+        _left = match.Teams.TryGetValue(_client.Config.Chat.FactionLeft, out var team) ? team : null;
+        _right = match.Teams.TryGetValue(_client.Config.Chat.FactionRight, out team) ? team : null;
     }
 
     public async Task Refresh()
@@ -172,7 +172,7 @@ internal class MatchRoom(
 
     public FaceitTeam GetTeam(bool left)
     {
-        var key = left ? Constants.CHAT_FACTION_LEFT : Constants.CHAT_FACTION_RIGHT;
+        var key = left ? _client.Config.Chat.FactionLeft : _client.Config.Chat.FactionRight;
         return Match.Teams.TryGetValue(key, out var team) 
             ? team 
             : throw new InvalidOperationException("Team not found");

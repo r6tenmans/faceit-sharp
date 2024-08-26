@@ -300,7 +300,7 @@ internal class MessageModule(
         var context = new ParsedContext(type, matchId, teamId, hubId, userId);
         var timestamp = stanza.Timestamp ?? stanza.Datas.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
         var (hub, match, team, user) = await GetData(context);
-        var left = match?.Teams.Where(t => t.Key == Constants.CHAT_FACTION_LEFT && t.Value.Id == team?.Id).Any() ?? true;
+        var left = match?.Teams.Where(t => t.Key == Config.Chat.FactionLeft && t.Value.Id == team?.Id).Any() ?? true;
 
         var composing = stanza.Composings.FirstOrDefault();
         if (composing is not null)
