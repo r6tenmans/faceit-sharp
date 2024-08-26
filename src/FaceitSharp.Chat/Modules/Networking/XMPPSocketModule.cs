@@ -54,26 +54,32 @@ internal class XMPPSocketModule(
     ILogger _logger,
     IFaceitChatClient _client) : SocketModule(_logger, _client), IXMPPSocketModule
 {
+    private IObservable<XmlElement>? _elements;
+    private IObservable<StanzaParsed>? _stanzaParsed;
+    private IObservable<XmlElement>? _unparsedElements;
+    private IObservable<Stanza>? _allStanzas;
+    private IObservable<Stanza>? _stanzas;
+
     private readonly Type[] _globalStanzas = [typeof(Message), typeof(Presence), typeof(Iq), typeof(Features)];
     private readonly ConcurrentDictionary<IResponseExpected, TaskCompletionSource<Stanza>> _resolvers = [];
 
-    public IObservable<XmlElement> Elements => SocketMessages
+    public IObservable<XmlElement> Elements => _elements ??= SocketMessages
         .Select(MessageParser)
         .Where(t => t is not null)
         .Select(t => t!);
 
-    public IObservable<StanzaParsed> StanzaParsed => Elements
+    public IObservable<StanzaParsed> StanzaParsed => _stanzaParsed ??= Elements
         .Select(StanzaParser);
 
-    public IObservable<XmlElement> UnparsedElements => StanzaParsed
+    public IObservable<XmlElement> UnparsedElements => _unparsedElements ??= StanzaParsed
         .Where(t => t.Stanza is null)
         .Select(t => t.Element);
 
-    public IObservable<Stanza> AllStanzas => StanzaParsed
+    public IObservable<Stanza> AllStanzas => _allStanzas ??= StanzaParsed
         .Where(t => t.Stanza is not null)
         .Select(t => t.Stanza!);
 
-    public IObservable<Stanza> Stanzas => AllStanzas
+    public IObservable<Stanza> Stanzas => _stanzas ??= AllStanzas
         .Where(t => !StanzaHandler(t));
 
     public override string ModuleName => "XMPP Socket Module";
@@ -125,6 +131,11 @@ internal class XMPPSocketModule(
         foreach (var (_, tsc) in _resolvers)
             tsc.TrySetCanceled();
         _resolvers.Clear();
+        _elements = null;
+        _stanzaParsed = null;
+        _unparsedElements = null;
+        _allStanzas = null;
+        _stanzas = null;
         return base.OnCleanup();
     }
 

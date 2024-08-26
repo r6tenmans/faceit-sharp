@@ -41,19 +41,22 @@ internal class HubRoom(
     IFaceitChatClient _client) : IHubRoom
 {
     private JID? _id;
+    private IObservable<IHubReplyMessage>? _messages;
+    private IObservable<IHubComposing>? _composing;
+    private IObservable<IHubAnnouncement>? _joinAnnouncements;
 
     public FaceitHub Hub { get; set; } = _initial;
 
     public JID Id => _id ??= Hub.GetJID();
 
-    public IObservable<IHubReplyMessage> Messages => _client.Messages.FromHub.Where(t => t.Hub.Guid == Hub.Guid);
+    public IObservable<IHubReplyMessage> Messages => _messages ??= _client.Messages.FromHub.Where(t => t.Hub.Guid == Hub.Guid);
 
-    public IObservable<IHubComposing> Composing => _client.Messages.Composing
+    public IObservable<IHubComposing> Composing => _composing ??= _client.Messages.Composing
         .Where(t => t.Context == ContextType.Hub)
         .Cast<IHubComposing>()
         .Where(t => t.Hub.Guid == Hub.Guid);
 
-    public IObservable<IHubAnnouncement> JoinAnnouncements => _client.Messages.JoinAnnouncements
+    public IObservable<IHubAnnouncement> JoinAnnouncements => _joinAnnouncements ??= _client.Messages.JoinAnnouncements
         .Where(t => t.Context == ContextType.Hub)
         .Cast<IHubAnnouncement>()
         .Where(t => t.Hub.Guid == Hub.Guid);

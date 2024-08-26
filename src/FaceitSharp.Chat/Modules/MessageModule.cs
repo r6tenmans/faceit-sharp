@@ -128,32 +128,41 @@ internal class MessageModule(
     public override string ModuleName => "Messaging Module";
 
     #region Events
-    public IObservable<Message> Stanzas => _client.Connection.Stanzas.OfType<Message>();
+    private IObservable<Message>? _stanzas;
+    private IObservable<IMessageEvent>? _events;
+    private IObservable<IComposing>? _composing;
+    private IObservable<IJoinAnnouncement>? _joinAnnouncements;
+    private IObservable<IReplyMessage>? _all;
+    private IObservable<IHubReplyMessage>? _fromHub;
+    private IObservable<IMatchReplyMessage>? _fromMatch;
+    private IObservable<ITeamReplyMessage>? _fromTeam;
 
-    public IObservable<IMessageEvent> Events => Stanzas
+    public IObservable<Message> Stanzas => _stanzas ??= _client.Connection.Stanzas.OfType<Message>();
+
+    public IObservable<IMessageEvent> Events => _events ??= Stanzas
         .SelectMany(t => ParseMessage(t).ToObservable())
         .Where(t => t.Author.UserId != _client.Auth.Id)
         .Where(t => !MessageHandler(t));
 
-    public IObservable<IComposing> Composing => Events.OfType<IComposing>();
+    public IObservable<IComposing> Composing => _composing ??= Events.OfType<IComposing>();
 
-    public IObservable<IJoinAnnouncement> JoinAnnouncements => Events.OfType<IJoinAnnouncement>();
+    public IObservable<IJoinAnnouncement> JoinAnnouncements => _joinAnnouncements ??= Events.OfType<IJoinAnnouncement>();
 
-    public IObservable<IReplyMessage> All => Events
+    public IObservable<IReplyMessage> All => _all ??= Events
         .OfType<RoomMessage>()
         .Select(Contextualize)
         .Where(t => t is not null)
         .Select(t => t!);
 
-    public IObservable<IHubReplyMessage> FromHub => All
+    public IObservable<IHubReplyMessage> FromHub => _fromHub ??= All
         .Where(t => t.Context == ContextType.Hub)
         .Cast<IHubReplyMessage>();
 
-    public IObservable<IMatchReplyMessage> FromMatch => All
+    public IObservable<IMatchReplyMessage> FromMatch => _fromMatch ??= All
         .Where(t => t.Context == ContextType.Match)
         .Cast<IMatchReplyMessage>();
 
-    public IObservable<ITeamReplyMessage> FromTeam => All
+    public IObservable<ITeamReplyMessage> FromTeam => _fromTeam ??= All
         .Where(t => t.Context == ContextType.Team)
         .Cast<ITeamReplyMessage>();
     #endregion
@@ -441,6 +450,14 @@ internal class MessageModule(
         _resolvers.Clear();
         _roomMatches.Clear();
         _roomHubs.Clear();
+        _stanzas = null;
+        _events = null;
+        _composing = null;
+        _joinAnnouncements = null;
+        _all = null;
+        _fromHub = null;
+        _fromMatch = null;
+        _fromTeam = null;
         return base.OnCleanup();
     }
 }

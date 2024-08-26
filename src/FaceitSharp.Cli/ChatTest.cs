@@ -3,6 +3,7 @@
 namespace FaceitSharp.Cli;
 
 using Chat;
+using FaceitSharp.Chat.Messaging;
 
 internal class ChatTest(
     IFaceitChatClient _chat,
@@ -55,7 +56,7 @@ internal class ChatTest(
                 
                 if (!msg.MentionsCurrentUser) return;
 
-                await msg.Send($"Hello there, @{msg.Author.Name}! How is the match going? (Sorry, I can't do anything yet!)", msg.Author);
+                await msg.Send($"Hello there, @{msg.Author.Name} ! How is the match going? (Sorry, I can't do anything yet!)", msg.Author);
             });
     }
 }

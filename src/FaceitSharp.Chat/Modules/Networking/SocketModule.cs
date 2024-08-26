@@ -48,35 +48,42 @@ internal abstract class SocketModule(
     ILogger _logger,
     IFaceitChatClient _client) : ChatModule(_logger, _client), ISocketModule
 {
-    private readonly Subject<SocketEvent> _socketEvents = new();
+    private readonly Subject<SocketEvent> _socketEvent = new();
     private readonly Subject<string> _socketMessage = new();
+
+    private IObservable<string>? _socketMessages;
+    private IObservable<SocketEvent>? _socketEvents;
+    private IObservable<ISocketEventConnect>? _connectionEvents;
+    private IObservable<ISocketEventConnect>? _connectionEstablished;
+    private IObservable<ISocketEventReconnect>? _reconnectionEvents;
+    private IObservable<ISocketEventReconnect>? _connectionReestablished;
+    private IObservable<ISocketEventDisconnect>? _disconnected;
 
     private WebsocketClient? _client;
     private Encoding _encoding = Encoding.UTF8;
 
-    public IObservable<string> SocketMessages => _socketMessage.AsObservable();
-
-    public IObservable<SocketEvent> SocketEvents => _socketEvents.AsObservable();
+    public IObservable<string> SocketMessages => _socketMessages ??= _socketMessage.AsObservable();
+    public IObservable<SocketEvent> SocketEvents => _socketEvents ??= _socketEvent.AsObservable();
 
     public IObservable<ISocketEventConnect> ConnectionEvents
-        => SocketEvents.Where(x =>
+        => _connectionEvents ??= SocketEvents.Where(x =>
             x.Type == SocketEventType.ConnectionFailed ||
             x.Type == SocketEventType.Connecting ||
             x.Type == SocketEventType.Connected);
 
     public IObservable<ISocketEventConnect> ConnectionEstablished
-        => ConnectionEvents.Where(x => x.Type == SocketEventType.Connected);
+        => _connectionEstablished ??= ConnectionEvents.Where(x => x.Type == SocketEventType.Connected);
 
     public IObservable<ISocketEventReconnect> ReconnectionEvents
-        => SocketEvents.Where(x =>
+        => _reconnectionEvents ??= SocketEvents.Where(x =>
             x.Type == SocketEventType.Reconnecting ||
             x.Type == SocketEventType.Reconnected);
 
     public IObservable<ISocketEventReconnect> ConnectionReestablished
-        => ReconnectionEvents.Where(x => x.Type == SocketEventType.Reconnected);
+        => _connectionReestablished ??= ReconnectionEvents.Where(x => x.Type == SocketEventType.Reconnected);
 
     public IObservable<ISocketEventDisconnect> Disconnected
-        => SocketEvents.Where(x => x.Type == SocketEventType.Disconnected);
+        => _disconnected ??= SocketEvents.Where(x => x.Type == SocketEventType.Disconnected);
 
     public bool Connected => Started && (_client?.IsRunning ?? false);
 
@@ -86,7 +93,7 @@ internal abstract class SocketModule(
 
     public virtual async Task<bool> Connect(Action<ISocketConfig> config)
     {
-        _socketEvents.OnNext(new SocketEvent
+        _socketEvent.OnNext(new SocketEvent
         {
             Source = SocketEventSource.User,
             Type = SocketEventType.Connecting
@@ -104,7 +111,7 @@ internal abstract class SocketModule(
         catch (Exception ex)
         {
             Error(ex, "Error connecting to socket");
-            _socketEvents.OnNext(new SocketEvent
+            _socketEvent.OnNext(new SocketEvent
             {
                 Source = SocketEventSource.Error,
                 Type = SocketEventType.ConnectionFailed,
@@ -285,7 +292,7 @@ internal abstract class SocketModule(
                 Reason = info.CloseStatusDescription,
                 Attempt = 0
             };
-            _socketEvents.OnNext(evt);
+            _socketEvent.OnNext(evt);
 
             if (type != SocketEventType.Disconnected || _client is null)
                 return;
@@ -322,7 +329,7 @@ internal abstract class SocketModule(
                 Type = type,
                 Source = source
             };
-            _socketEvents.OnNext(evt);
+            _socketEvent.OnNext(evt);
         }, "SOCKET RECONNECTED >> {type}", info.Type.ToString());
     }
 
@@ -331,6 +338,15 @@ internal abstract class SocketModule(
         if (Started)
             await Disconnect("Disposing");
 
+        _socketEvent.Dispose();
+        _socketMessage.Dispose();
+        _socketMessages = null;
+        _socketEvents = null;
+        _connectionEvents = null;
+        _connectionEstablished = null;
+        _reconnectionEvents = null;
+        _connectionReestablished = null;
+        _disconnected = null;
         await base.OnCleanup();
     }
 }

@@ -1,4 +1,7 @@
-﻿namespace FaceitSharp.Chat.Messaging.Rooms;
+﻿using FaceitSharp.Chat.XMPP.Stanzas;
+using static FaceitSharp.Chat.XMPP.Stanzas.Message;
+
+namespace FaceitSharp.Chat.Messaging.Rooms;
 
 /// <summary>
 /// Represents a match room on FaceIT that can be interacted with
@@ -127,28 +130,49 @@ internal class MatchRoom(
     #endregion
 
     #region Events
-    public IObservable<IMatchReplyMessage> MatchChat => _client.Messages.FromMatch.Where(t => t.Match.Id == Match.Id);
+    private IObservable<IMatchReplyMessage>? _matchChat;
+    private IObservable<ITeamReplyMessage>? _teamChat;
+    private IObservable<IMatchReplyMessage>? _messages;
+    private IObservable<ITeamReplyMessage>? _leftTeamChat;
+    private IObservable<ITeamReplyMessage>? _rightTeamChat;
+    private IObservable<IMatchComposing>? _composing;
+    private IObservable<IMatchComposing>? _matchChatComposing;
+    private IObservable<ITeamComposing>? _teamChatComposing;
+    private IObservable<ITeamComposing>? _leftTeamChatComposing;
+    private IObservable<ITeamComposing>? _rightTeamChatComposing;
 
-    public IObservable<ITeamReplyMessage> TeamChat => _client.Messages.FromTeam.Where(t => t.Match.Id == Match.Id);
+    public IObservable<IMatchReplyMessage> MatchChat
+        => _matchChat ??= _client.Messages.FromMatch.Where(t => t.Match.Id == Match.Id);
 
-    public IObservable<IMatchReplyMessage> Messages => MatchChat.Merge(TeamChat);
+    public IObservable<ITeamReplyMessage> TeamChat 
+        => _teamChat ??= _client.Messages.FromTeam.Where(t => t.Match.Id == Match.Id);
 
-    public IObservable<ITeamReplyMessage> LeftTeamChat => TeamChat.Where(t => t.Team.Id == Left.Id);
+    public IObservable<IMatchReplyMessage> Messages 
+        => _messages ??= MatchChat.Merge(TeamChat);
 
-    public IObservable<ITeamReplyMessage> RightTeamChat => TeamChat.Where(t => t.Team.Id == Right.Id);
+    public IObservable<ITeamReplyMessage> LeftTeamChat 
+        => _leftTeamChat ??= TeamChat.Where(t => t.Team.Id == Left.Id);
 
-    public IObservable<IMatchComposing> Composing => _client.Messages.Composing
-        .Where(t => t.Context == ContextType.Match || t.Context == ContextType.Team)
-        .Cast<IMatchComposing>()
-        .Where(t => t.Match.Id == Match.Id);
+    public IObservable<ITeamReplyMessage> RightTeamChat 
+        => _rightTeamChat ??= TeamChat.Where(t => t.Team.Id == Right.Id);
 
-    public IObservable<IMatchComposing> MatchChatComposing => Composing.Where(t => t.Context == ContextType.Match);
+    public IObservable<IMatchComposing> Composing 
+        => _composing ??= _client.Messages.Composing
+            .Where(t => t.Context == ContextType.Match 
+                || t.Context == ContextType.Team).Cast<IMatchComposing>()
+            .Where(t => t.Match.Id == Match.Id);
 
-    public IObservable<ITeamComposing> TeamChatComposing => Composing.Where(t => t.Context == ContextType.Team).Cast<ITeamComposing>();
+    public IObservable<IMatchComposing> MatchChatComposing 
+        => _matchChatComposing ??= Composing.Where(t => t.Context == ContextType.Match);
 
-    public IObservable<ITeamComposing> LeftTeamChatComposing => TeamChatComposing.Where(t => t.Team.Id == Left.Id);
+    public IObservable<ITeamComposing> TeamChatComposing 
+        => _teamChatComposing ??= Composing.Where(t => t.Context == ContextType.Team).Cast<ITeamComposing>();
 
-    public IObservable<ITeamComposing> RightTeamChatComposing => TeamChatComposing.Where(t => t.Team.Id == Right.Id);
+    public IObservable<ITeamComposing> LeftTeamChatComposing 
+        => _leftTeamChatComposing ??= TeamChatComposing.Where(t => t.Team.Id == Left.Id);
+
+    public IObservable<ITeamComposing> RightTeamChatComposing 
+        => _rightTeamChatComposing ??= TeamChatComposing.Where(t => t.Team.Id == Right.Id);
     #endregion
 
     public void SetContext(FaceitMatch match)

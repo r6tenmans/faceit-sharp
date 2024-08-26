@@ -169,6 +169,8 @@ internal class AuthenticationModule(
                         Warning("Failed to ping chat server");
                         break;
                     }
+
+                    Debug("Faceit server ping worked!");
                 }
             }
             catch (OperationCanceledException)

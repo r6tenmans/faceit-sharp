@@ -67,10 +67,10 @@ internal class ApiCacheModule(
     IFaceitInternalApiService _api) : ChatModule(_logger, _client), IApiCacheModule
 {
     private CacheItem<FaceitUserMe?>? _currentUser;
-    private readonly ConcurrentDictionary<string, CacheItem<FaceitMatch?>> _matches = [];
-    private readonly ConcurrentDictionary<string, CacheItem<FaceitHub?>> _hubs = [];
-    private readonly ConcurrentDictionary<string, CacheItem<FaceitUser?>> _users = [];
-    private readonly ConcurrentDictionary<string, CacheItem<FaceitTournament?>> _tournament = [];
+    private readonly ConcurrentDictionary<string, QueueCacheItem<FaceitMatch?>> _matches = [];
+    private readonly ConcurrentDictionary<string, QueueCacheItem<FaceitHub?>> _hubs = [];
+    private readonly ConcurrentDictionary<string, QueueCacheItem<FaceitUser?>> _users = [];
+    private readonly ConcurrentDictionary<string, QueueCacheItem<FaceitTournament?>> _tournament = [];
     private readonly CancellationTokenSource _cleaningSource = new();
     private CancellationToken? _cleaning;
     private double _timeoutSec = 60 * 30;
@@ -119,7 +119,7 @@ internal class ApiCacheModule(
         return await _currentUser.Get();
     }
 
-    public async Task<T?> Fetch<T>(string? id, ConcurrentDictionary<string, CacheItem<T?>> cache, Func<Task<T?>> fetch, bool bust)
+    public async Task<T?> Fetch<T>(string? id, ConcurrentDictionary<string, QueueCacheItem<T?>> cache, Func<Task<T?>> fetch, bool bust)
     {
         if (string.IsNullOrWhiteSpace(id))
             return default;
@@ -130,7 +130,7 @@ internal class ApiCacheModule(
         if (cache.TryGetValue(id, out var item))
             return await item.Get();
 
-        item = new CacheItem<T?>(fetch, _cacheLifeTimeSec);
+        item = new QueueCacheItem<T?>(fetch, _cacheLifeTimeSec);
         cache.TryAdd(id, item);
         return await item.Get();
     }
@@ -164,9 +164,9 @@ internal class ApiCacheModule(
         return base.OnCleanup();
     }
 
-    public static bool Valid<T>(CacheItem<T> item) => item.Stamp.HasValue && item.Stamp > DateTime.Now;
+    public static bool Valid<T>(QueueCacheItem<T> item) => !item.Expired;
 
-    public static void CleanExpired<T>(ConcurrentDictionary<string, CacheItem<T>> cache)
+    public static void CleanExpired<T>(ConcurrentDictionary<string, QueueCacheItem<T>> cache)
     {
         foreach (var (key, item) in cache.ToArray())
         {
