@@ -6,24 +6,19 @@
 public interface IXMPPSocketModule : ISocketModule
 {
     /// <summary>
-    /// Triggered when an XML element is received from the XMPP socket
-    /// </summary>
-    IObservable<XmlElement> Elements { get; }
-
-    /// <summary>
     /// Triggered when a stanza is received but it couldn't be parsed
     /// </summary>
     IObservable<XmlElement> UnparsedElements { get; }
 
     /// <summary>
-    /// Triggered when a stanza is received, regardless of whether if it's a response or not
-    /// </summary>
-    IObservable<Stanza> AllStanzas { get; }
-
-    /// <summary>
-    /// Triggered when a stanza is received that isn't a response
+    /// Triggered when a stanza is received that isn't handled
     /// </summary>
     IObservable<Stanza> Stanzas { get; }
+
+    /// <summary>
+    /// Triggered when a message is received that couldn't be parsed
+    /// </summary>
+    IObservable<string> UnparsedMessages { get; }
 
     /// <summary>
     /// Sends the given XML element to the XMPP socket
@@ -54,33 +49,22 @@ internal class XMPPSocketModule(
     ILogger _logger,
     IFaceitChatClient _client) : SocketModule(_logger, _client), IXMPPSocketModule
 {
-    private IObservable<XmlElement>? _elements;
-    private IObservable<StanzaParsed>? _stanzaParsed;
-    private IObservable<XmlElement>? _unparsedElements;
-    private IObservable<Stanza>? _allStanzas;
-    private IObservable<Stanza>? _stanzas;
+    private readonly Subject<Stanza> _parsedStanzas = new();
+    private readonly Subject<XmlElement> _unparsedStanzas = new();
+    private readonly Subject<string> _unparsedMessages = new();
+
+    private IObservable<Stanza>? _parsedStanzasInstance;
+    private IObservable<XmlElement>? _unparsedStanzaInstance;
+    private IObservable<string>? _unparsedMessageInstance;
 
     private readonly Type[] _globalStanzas = [typeof(Message), typeof(Presence), typeof(Iq), typeof(Features)];
     private readonly ConcurrentDictionary<IResponseExpected, TaskCompletionSource<Stanza>> _resolvers = [];
 
-    public IObservable<XmlElement> Elements => _elements ??= SocketMessages
-        .Select(MessageParser)
-        .Where(t => t is not null)
-        .Select(t => t!);
+    public IObservable<string> UnparsedMessages => _unparsedMessageInstance ??= _unparsedMessages.AsObservable();
 
-    public IObservable<StanzaParsed> StanzaParsed => _stanzaParsed ??= Elements
-        .Select(StanzaParser);
+    public IObservable<XmlElement> UnparsedElements => _unparsedStanzaInstance ??= _unparsedStanzas.AsObservable();
 
-    public IObservable<XmlElement> UnparsedElements => _unparsedElements ??= StanzaParsed
-        .Where(t => t.Stanza is null)
-        .Select(t => t.Element);
-
-    public IObservable<Stanza> AllStanzas => _allStanzas ??= StanzaParsed
-        .Where(t => t.Stanza is not null)
-        .Select(t => t.Stanza!);
-
-    public IObservable<Stanza> Stanzas => _stanzas ??= AllStanzas
-        .Where(t => !StanzaHandler(t));
+    public IObservable<Stanza> Stanzas => _parsedStanzasInstance ??= _parsedStanzas.AsObservable();
 
     public override string ModuleName => "XMPP Socket Module";
 
@@ -122,7 +106,29 @@ internal class XMPPSocketModule(
 
     public override Task OnSetup()
     {
-        Manage(Stanzas.Subscribe());
+        Manage(SocketMessages
+            .Subscribe(t =>
+            {
+                Debug("SOCKET MESSAGE RECEIVED >> {data}", t);
+                var element = MessageParser(t);
+                if (element is null)
+                {
+                    _unparsedMessages.OnNext(t);
+                    return;
+                }
+
+                var stanza = StanzaParser(element);
+                if (stanza is null)
+                {
+                    _unparsedStanzas.OnNext(element);
+                    return;
+                }
+
+                if (!StanzaHandler(stanza))
+                    _parsedStanzas.OnNext(stanza);
+            }));
+        Manage(SocketMessagesSent
+            .Subscribe(t => Debug("SOCKET MESSAGE SENT >> {data}", t)));
         return base.OnSetup();
     }
 
@@ -131,11 +137,12 @@ internal class XMPPSocketModule(
         foreach (var (_, tsc) in _resolvers)
             tsc.TrySetCanceled();
         _resolvers.Clear();
-        _elements = null;
-        _stanzaParsed = null;
-        _unparsedElements = null;
-        _allStanzas = null;
-        _stanzas = null;
+        _parsedStanzas.Dispose();
+        _unparsedStanzas.Dispose();
+        _unparsedMessages.Dispose();
+        _parsedStanzasInstance = null;
+        _unparsedStanzaInstance = null;
+        _unparsedMessageInstance = null;
         return base.OnCleanup();
     }
 
@@ -158,7 +165,7 @@ internal class XMPPSocketModule(
         return handled;
     }
 
-    public StanzaParsed StanzaParser(XmlElement element)
+    public Stanza? StanzaParser(XmlElement element)
     {
         Stanza? output = null;
         Box(() =>
@@ -173,7 +180,7 @@ internal class XMPPSocketModule(
             if (output is null)
                 Debug("ELEMENT RECEIVED >> TO STANZA >> NO MATCHING PARSER >> {element}", element.ToXmlString());
         }, "ELEMENT RECEIVED >> TO STANZA >> {name}", element.Name);
-        return new (output, element);
+        return output;
     }
 
     public XmlElement? MessageParser(string message)

@@ -49,9 +49,11 @@ internal abstract class SocketModule(
     IFaceitChatClient _client) : ChatModule(_logger, _client), ISocketModule
 {
     private readonly Subject<SocketEvent> _socketEvent = new();
-    private readonly Subject<string> _socketMessage = new();
+    private readonly Subject<string> _socketMessageReceived = new();
+    private readonly Subject<string> _socketMessageSent = new();
 
     private IObservable<string>? _socketMessages;
+    private IObservable<string>? _socketMessagesSent;
     private IObservable<SocketEvent>? _socketEvents;
     private IObservable<ISocketEventConnect>? _connectionEvents;
     private IObservable<ISocketEventConnect>? _connectionEstablished;
@@ -62,7 +64,10 @@ internal abstract class SocketModule(
     private WebsocketClient? _client;
     private Encoding _encoding = Encoding.UTF8;
 
-    public IObservable<string> SocketMessages => _socketMessages ??= _socketMessage.AsObservable();
+    public IObservable<string> SocketMessages => _socketMessages ??= _socketMessageReceived.AsObservable();
+
+    public IObservable<string> SocketMessagesSent => _socketMessagesSent ??= _socketMessageSent.AsObservable();
+
     public IObservable<SocketEvent> SocketEvents => _socketEvents ??= _socketEvent.AsObservable();
 
     public IObservable<ISocketEventConnect> ConnectionEvents
@@ -196,12 +201,10 @@ internal abstract class SocketModule(
         {
             var client = await GetClient();
             if (instant)
-            {
                 await client.SendInstant(message);
-                return;
-            }
-
-            client.Send(message);
+            else 
+                client.Send(message);
+            _socketMessageSent.OnNext(message);
         }, "Sending Text All: {message}", message);
     }
 
@@ -211,12 +214,10 @@ internal abstract class SocketModule(
         {
             var client = await GetClient();
             if (instant)
-            {
                 await client.SendInstant(message);
-                return;
-            }
-
-            client.Send(message);
+            else 
+                client.Send(message);
+            _socketMessageSent.OnNext(_encoding.GetString(message));
         }, "Sending Binary All: {length}", message.Length);
     }
 
@@ -227,21 +228,21 @@ internal abstract class SocketModule(
             if (message.MessageType == WebSocketMessageType.Text &&
                 !string.IsNullOrEmpty(message.Text))
             {
-                _socketMessage.OnNext(message.Text);
+                _socketMessageReceived.OnNext(message.Text);
                 return;
             }
 
             if (message.MessageType == WebSocketMessageType.Binary &&
                 message.Binary is not null)
             {
-                _socketMessage.OnNext(_encoding.GetString(message.Binary));
+                _socketMessageReceived.OnNext(_encoding.GetString(message.Binary));
                 return;
             }
 
             if (message.MessageType == WebSocketMessageType.Binary &&
                 message.Stream is not null)
             {
-                _socketMessage.OnNext(_encoding.GetString(message.Stream.ToArray()));
+                _socketMessageReceived.OnNext(_encoding.GetString(message.Stream.ToArray()));
                 return;
             }
         }, "SOCKET MESSAGE RECEIVE >> {type} >> {value}",
@@ -339,8 +340,10 @@ internal abstract class SocketModule(
             await Disconnect("Disposing");
 
         _socketEvent.Dispose();
-        _socketMessage.Dispose();
+        _socketMessageReceived.Dispose();
+        _socketMessageSent.Dispose();
         _socketMessages = null;
+        _socketMessagesSent = null;
         _socketEvents = null;
         _connectionEvents = null;
         _connectionEstablished = null;

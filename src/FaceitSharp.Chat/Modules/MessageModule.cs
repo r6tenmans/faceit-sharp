@@ -2,6 +2,9 @@
 
 using Messaging;
 using Messaging.Rooms;
+using static FaceitSharp.Api.Internal.Models.FaceitTournamentParticipant;
+using System.Reactive;
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// Represents a module that handles message parsing and sending
@@ -114,6 +117,23 @@ public interface IMessageModule
     /// <param name="timeoutSec">The number of seconds to wait before timing out</param>
     /// <returns>The message that was received</returns>
     Task<T> Expect<T>(Action<MessageExpectation<T>> configure, double timeoutSec) where T : IMessageEvent;
+
+    /// <summary>
+    /// Mute a user in a hub chat
+    /// </summary>
+    /// <param name="userId">The user's FaceIT ID</param>
+    /// <param name="hubId">The hub ID to mute in</param>
+    /// <param name="duration">How long the mute should last</param>
+    /// <returns>The result of the mute</returns>
+    Task<bool> Mute(string userId, string hubId, TimeSpan duration);
+
+    /// <summary>
+    /// Unmute a user in a hub chat
+    /// </summary>
+    /// <param name="userId">The user's FaceIT ID</param>
+    /// <param name="hubId">The hub ID to mute in</param>
+    /// <returns>The result of the unmute</returns>
+    Task<bool> Unmute(string userId, string hubId);
 }
 
 internal class MessageModule(
@@ -124,6 +144,7 @@ internal class MessageModule(
     private readonly ConcurrentDictionary<string, IMatchRoom> _roomMatches = [];
     private readonly ConcurrentDictionary<string, IHubRoom> _roomHubs = [];
     private readonly ConcurrentDictionary<IMessageExpectation, TaskCompletionSource<IMessageEvent>> _resolvers = [];
+    private readonly Subject<IMessageEvent> _messageEvents = new();
 
     public override string ModuleName => "Messaging Module";
 
@@ -139,10 +160,7 @@ internal class MessageModule(
 
     public IObservable<Message> Stanzas => _stanzas ??= _client.Connection.Stanzas.OfType<Message>();
 
-    public IObservable<IMessageEvent> Events => _events ??= Stanzas
-        .SelectMany(t => ParseMessage(t).ToObservable())
-        .Where(t => t.Author.UserId != _client.Auth.Id)
-        .Where(t => !MessageHandler(t));
+    public IObservable<IMessageEvent> Events => _events ??= _messageEvents.AsObservable();
 
     public IObservable<IComposing> Composing => _composing ??= Events.OfType<IComposing>();
 
@@ -196,6 +214,38 @@ internal class MessageModule(
         var hubRoom = new HubRoom(hub, _client);
         _roomHubs.TryAdd(id, hubRoom);
         return hubRoom;
+    }
+
+    public async Task<bool> Mute(string userId, string hubId, TimeSpan duration)
+    {
+        var mute = SendMute.HubMute(userId, hubId, duration, _resourceId.Next());
+        var result = (Iq)await _client.Connection.Send(mute);
+        if (result is not null && !result.HasError) return true;
+
+        if (result is null)
+        {
+            Error("Mute failed: No response from server: User: {userId} >> Hub: {hubId}", userId, hubId);
+            return false;
+        }
+
+        Error("Mute failed: {userId} >> Hub: {hubId} >> {data}", userId, hubId, string.Join("\r\n", result.Errors.Select(t => t.Value)));
+        return false;
+    }
+
+    public async Task<bool> Unmute(string userId, string hubId)
+    {
+        var unmute = SendMute.HubUnmute(userId, hubId, _resourceId.Next());
+        var result = (Iq)await _client.Connection.Send(unmute);
+        if (result is not null && !result.HasError) return true;
+
+        if (result is null)
+        {
+            Error("Unmute failed: No response from server: {userId} >> Hub: {hubId}", userId, hubId);
+            return false;
+        }
+
+        Error("Unmute failed: {userId} >> Hub: {hubId} >> {data}", userId, hubId, string.Join("\r\n", result.Errors.Select(t => t.Value)));
+        return false;
     }
 
     public async Task<Message> Send(JID to, string message, string[]? images = null, UserMention[]? mentions = null, string? type = null)
@@ -287,94 +337,119 @@ internal class MessageModule(
             .ToArray();
     }
 
-    public async IAsyncEnumerable<IMessageEvent> ParseMessage(Message stanza)
+    public async IAsyncEnumerable<IMessageEvent> ProcessReadEvent(Message stanza)
     {
-        if (stanza.From is null ||
-            stanza.From.Node is null ||
-            stanza.To is null)
+        var reads = stanza.Children.OfType<Message.Read>();
+        foreach(var read in reads)
         {
-            Warning("MESSAGE MODULE >> PARSE MESSAGE >> No context found: {event}", stanza.Element.ToXmlString());
-            yield break;
-        }
+            if (read.Jid is null) continue;
 
-        var type = stanza.From.Context(
-            out string? matchId, out string? teamId, 
-            out string? hubId, out string? userId);
-        if (type == ContextType.Unknown)
-        {
-            Warning("MESSAGE MODULE >> PARSE MESSAGE >> Unknown context: {event}", stanza.Element.ToXmlString());
-            yield break;
-        }
+            var userId = read.Jid.Resource;
+            if (string.IsNullOrEmpty(userId)) continue;
 
-        var context = new ParsedContext(type, matchId, teamId, hubId, userId);
-        var timestamp = stanza.Timestamp ?? stanza.Datas.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
-        var (hub, match, team, user) = await GetData(context);
-        var left = match?.Teams.Where(t => t.Key == Config.Chat.FactionLeft && t.Value.Id == team?.Id).Any() ?? true;
+            FaceitUser? profile;
+            if (userId == _client.Auth.Id)
+                profile = _client.Auth.Profile;
+            else
+                profile = await _client.Cache.User(userId);
 
-        var composing = stanza.Composings.FirstOrDefault();
-        if (composing is not null)
-        {
-            if (user is not null) 
-                yield return new Composing
+            if (profile is null) continue;
+
+            var type = read.Jid.Context(out string? matchId, out string? teamId, out string? hubId, out _);
+            var context = new ParsedContext(type, matchId, teamId, hubId, userId);
+            var timestamp = read.Timestamp ?? stanza.Timestamp ?? stanza.Datas.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
+            var (hub, match, team, _) = await GetData(context);
+            var left = match?.Teams.Where(t => t.Key == Config.Chat.FactionLeft && t.Value.Id == team?.Id).Any() ?? true;
+
+            yield return new ReadReceipt 
             {
                 Context = type,
-                Author = user,
+                Author = profile,
                 Timestamp = timestamp,
-                From = stanza.From,
-                To = stanza.To,
+                From = stanza.From!,
+                To = stanza.To!,
                 ResourceId = stanza.Id,
                 Team = team!,
                 Hub = hub!,
                 Match = match!,
             };
-
-            yield break;
         }
+    }
+
+    public (IMessageEvent[], bool) ProcessComposing(ResolvedContext context, Message stanza)
+    {
+        var (hub, match, team, left, user, type, timestamp, from, to) = context;
+
+        var composing = stanza.Composings.FirstOrDefault();
+        if (composing is null) return ([], false);
+        if (user is null) return ([], true);
+
+        return (
+        [ 
+            new Composing
+            {
+                Context = type,
+                Author = user,
+                Timestamp = timestamp,
+                From = from,
+                To = to,
+                ResourceId = stanza.Id,
+                Team = team!,
+                Hub = hub!,
+                Match = match!,
+            }
+        ], true);
+    }
+
+    public async IAsyncEnumerable<IMessageEvent> ProcessJoins(ResolvedContext context, Message stanza)
+    {
+        var (hub, match, team, left, user, type, timestamp, from, to) = context;
 
         var joins = stanza.UserJoins.ToArray();
-        if (joins.Length > 0)
-        {
-            var tasks = joins
-                .Select(async t =>
+        if (joins.Length <= 0) yield break;
+
+
+        var tasks = joins
+            .Select(async t =>
+            {
+                if (string.IsNullOrEmpty(t.Node)) return null;
+
+                var user = await _client.Cache.User(t.Node);
+                if (user is null) return null;
+
+                return new JoinAnnouncement
                 {
-                    if (string.IsNullOrEmpty(t.Node)) return null;
+                    Author = user,
+                    Timestamp = timestamp,
+                    From = from,
+                    To = to,
+                    ResourceId = stanza.Id,
+                    Team = team!,
+                    Hub = hub!,
+                    Match = match!,
+                    Context = type,
+                };
+            });
 
-                    var user = await _client.Cache.User(t.Node);
-                    if (user is null) return null;
+        var announcements = await Task.WhenAll(tasks);
+        foreach (var announcement in announcements)
+            if (announcement is not null)
+                yield return announcement;
+    }
 
-                    return new JoinAnnouncement
-                    {
-                        Author = user,
-                        Timestamp = timestamp,
-                        From = stanza.From,
-                        To = stanza.To,
-                        ResourceId = stanza.Id,
-                        Team = team!,
-                        Hub = hub!,
-                        Match = match!,
-                        Context = type,
-                    };
-                });
-
-            var announcements = await Task.WhenAll(tasks);
-            foreach (var announcement in announcements)
-                if (announcement is not null) 
-                    yield return announcement;
-            yield break;
-        }
-
-        if (user is null) yield break;
-
+    public async IAsyncEnumerable<IMessageEvent> ProcessMessages(ResolvedContext context, Message stanza)
+    {
+        var (hub, match, team, left, user, type, timestamp, from, to) = context;
         var mentions = await ResolveMentions(stanza.Mentions);
         var everyone = stanza.Mentions.Any(t => t.IsEveryone);
 
         yield return new RoomMessage
         {
 
-            Author = user,
+            Author = user!,
             Timestamp = timestamp,
-            From = stanza.From,
-            To = stanza.To,
+            From = from,
+            To = to,
             Context = type,
             ResourceId = stanza.Id,
             LeftSide = left,
@@ -393,6 +468,60 @@ internal class MessageModule(
             Hub = hub!,
             Match = match!,
         };
+    }
+
+    public async IAsyncEnumerable<IMessageEvent> ParseMessage(Message stanza)
+    {
+        if (stanza.From is null ||
+            stanza.From.Node is null ||
+            stanza.To is null)
+        {
+            Warning("MESSAGE MODULE >> PARSE MESSAGE >> No context found: {event}", stanza.Element.ToXmlString());
+            yield break;
+        }
+
+        var type = stanza.From.Context(
+            out string? matchId, out string? teamId, 
+            out string? hubId, out string? userId);
+        if (type == ContextType.Unknown)
+        {
+            if (stanza.From.GetBareJID() == stanza.To.GetBareJID())
+            {
+                await foreach(var evt in ProcessReadEvent(stanza))
+                    yield return evt;
+                yield break;
+            }
+
+            Warning("MESSAGE MODULE >> PARSE MESSAGE >> Unknown context: {event}", stanza.Element.ToXmlString());
+            yield break;
+        }
+
+        var context = new ParsedContext(type, matchId, teamId, hubId, userId);
+        var timestamp = stanza.Timestamp ?? stanza.Datas.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
+        var (hub, match, team, user) = await GetData(context);
+        var left = match?.Teams.Where(t => t.Key == Config.Chat.FactionLeft && t.Value.Id == team?.Id).Any() ?? true;
+
+        var resolved = new ResolvedContext(hub, match, team, left, user, type, timestamp, stanza.From, stanza.To);
+
+        var (events, handled) = ProcessComposing(resolved, stanza);
+        if (handled)
+        {
+            foreach(var evt in events)
+                yield return evt;
+            yield break;
+        }
+
+        handled = false;
+        await foreach(var evt in ProcessJoins(resolved, stanza))
+        {
+            handled = true;
+            yield return evt;
+        }
+
+        if (handled || user is null) yield break;
+
+        await foreach(var evt in ProcessMessages(resolved, stanza))
+            yield return evt;
     }
 
     public IReplyMessage? Contextualize(RoomMessage message)
@@ -430,7 +559,12 @@ internal class MessageModule(
 
     public override Task OnSetup()
     {
-        Manage(Events.Subscribe());
+        //Only call the `ParseMessage` method once per stanza
+        Manage(Stanzas
+            .SelectMany(t => ParseMessage(t).ToObservable())
+            .Where(t => t.Author.UserId != _client.Auth.Id)
+            .Where(t => !MessageHandler(t))
+            .Subscribe(_messageEvents.OnNext));
         return base.OnSetup();
     }
 
@@ -450,6 +584,7 @@ internal class MessageModule(
         _resolvers.Clear();
         _roomMatches.Clear();
         _roomHubs.Clear();
+        _messageEvents.Dispose();
         _stanzas = null;
         _events = null;
         _composing = null;
@@ -468,3 +603,14 @@ internal record class ParsedContext(
     string? TeamId,
     string? HubId,
     string? UserId);
+
+internal record class ResolvedContext(
+    FaceitHub? Hub,
+    FaceitMatch? Match,
+    FaceitTeam? Team,
+    bool LeftSide,
+    FaceitUser? User,
+    ContextType Type,
+    DateTime Timestamp,
+    JID From,
+    JID To);

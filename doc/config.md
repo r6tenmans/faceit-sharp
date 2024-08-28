@@ -13,7 +13,8 @@ This class contains all of the configuration options for every service under the
 | Faceit:Webhooks               | `new()`                       | `FaceitConfigWebhook`     | Settings related to Webhooks |
 | Faceit:Webhooks:LogHooks      | `true`                        | `bool`                    | Whether to log all webhook events |
 | Faceit:Chat                   | `new()`                       | `FaceitConfigChat`        | Settings related to FaceIT Chats |
-| Faceit:Chat:Url               | `"wss://chat-server.faceit.com/websocket"` | `string`       | URL of the websocket server for FaceIT chats |
+| Faceit:Chat:LogLevel[^l]      | `LogLevel.Information`        | `LogLevel`		        | The default level to log everything at |
+| Faceit:Chat:Url               | `"wss://chat-server.faceit.com/websocket"` | `string`     | URL of the websocket server for FaceIT chats |
 | Faceit:Chat:Protocl           | `"xmpp"`                      | `string`                  | URL of the websocket server for FaceIT chats |
 | Faceit:Chat:AppVersion        | `"2ebc5d5"`                   | `string`                  | The app version slug to use for the ws client |
 | Faceit:Chat:FactionLeft       | `"faction1"`                  | `string`                  | The team key for the left-side team in matches |
@@ -28,6 +29,7 @@ This class contains all of the configuration options for every service under the
 [^f]: Factories are resolved via settings when it's first configured.
 [^k]: `Faceit:Chat:KeepAlive` needs to be greater than the `Faceit:Chat:PingInterval` (by a couple of seconds) otherwise your client will constantly reconnect before it can ping the server.
 [^e]: `Faceit:Chat:Encoding` cannot be set via configuration objects and needs to be set manually via code. 
+[^l]: This is an instance of `Microsoft.Extensions.Logging.LogLevel` and can be overridden via the underlying logging framework.
 
 ## Creating a config
 You can create the `FaceitConfig` via one of two constructors: defaults or config based.

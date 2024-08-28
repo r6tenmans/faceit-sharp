@@ -3,7 +3,8 @@
 namespace FaceitSharp.Cli;
 
 using Chat;
-using FaceitSharp.Chat.Messaging;
+using Chat.Messaging;
+using Chat.Messaging.Rooms;
 
 internal class ChatTest(
     IFaceitChatClient _chat,
@@ -40,8 +41,43 @@ internal class ChatTest(
 
                 if (!msg.MentionsCurrentUser) return;
 
-                await msg.Send($"Hello there, @{msg.Author.Name} ! How's it going in {msg.Hub.Name} today? (Sorry, I can't do anything yet!)", msg.Author);
+                if (msg.Author.Name == "Cardboard_mf" && await HandleAuthCommands(hub, msg))
+                    return;
+
+                await msg.Send($"Hello there, @{msg.Author.Name} ! How's it going in {msg.Hub.Name} today? I see your message: {msg.Context} >> {msg.Content}", msg.Author);
             });
+    }
+
+    public async Task<bool> HandleAuthCommands(IHubRoom room, IHubReplyMessage message)
+    {
+        var mentions = message
+            .Mentions
+            .Where(t => t.UserId != _chat.Auth.Profile.UserId && t.UserId != message.Author.UserId)
+            .DistinctBy(t => t.UserId)
+            .ToArray();
+
+        var words = message.Content.Words();
+        if (words.Contains("mute"))
+        {
+            var results = await Task.WhenAll(
+                mentions.Select(t => room.Mute(t.UserId, TimeSpan.FromDays(365 * 10))));
+            await message.Send(
+                $"@{message.Author.Name} Muted {string.Join(" , ", mentions.Select(t => "@" + t.Name))} for 10 years", 
+                [message.Author, ..mentions]);
+            return true;
+        }
+
+        if (words.Contains("unmute"))
+        {
+            var results = await Task.WhenAll(
+                mentions.Select(t => room.Unmute(t.UserId)));
+            await message.Send(
+                $"@{message.Author.Name} Unmuted {string.Join(" , ", mentions.Select(t => "@" + t.Name))}",
+                [message.Author, ..mentions]);
+            return true;
+        }
+
+        return false;
     }
 
     public async Task<IDisposable> WatchMatch(string id)

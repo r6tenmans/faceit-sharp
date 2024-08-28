@@ -31,6 +31,36 @@ public interface IHubRoom : IMessageSender
     IObservable<IHubAnnouncement> JoinAnnouncements { get; }
 
     /// <summary>
+    /// Mute a user in the chat
+    /// </summary>
+    /// <param name="user">The user</param>
+    /// <param name="duration">The duration to mute for</param>
+    /// <returns>The result of the request</returns>
+    Task<bool> Mute(FaceitPartialUser user, TimeSpan duration) => Mute(user.UserId, duration);
+
+    /// <summary>
+    /// Mute a user in the chat
+    /// </summary>
+    /// <param name="user">The user's FaceIT ID</param>
+    /// <param name="duration">The duration to mute for</param>
+    /// <returns>The result of the request</returns>
+    Task<bool> Mute(string user, TimeSpan duration);
+
+    /// <summary>
+    /// Unmute a user in the chat
+    /// </summary>
+    /// <param name="user">The user</param>
+    /// <returns>The result of the request</returns>
+    Task<bool> Unmute(FaceitPartialUser user) => Unmute(user.UserId);
+
+    /// <summary>
+    /// Unmute a user in the chat
+    /// </summary>
+    /// <param name="user">The user's FaceIT ID</param>
+    /// <returns>The result of the request</returns>
+    Task<bool> Unmute(string user);
+
+    /// <summary>
     /// Refreshes the data for the hub
     /// </summary>
     Task Refresh();
@@ -68,6 +98,11 @@ internal class HubRoom(
         Hub = hub;
         _id = null;
     }
+
+    public Task<bool> Mute(string userId, TimeSpan duration)
+        => _client.Messages.Mute(userId, Hub.Guid, duration);
+
+    public Task<bool> Unmute(string userId) => _client.Messages.Unmute(userId, Hub.Guid);
 
     public Task<Message> Send(string message, params UserMention[] mentions) => Send(message, [], mentions);
 

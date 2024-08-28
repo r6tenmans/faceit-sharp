@@ -36,6 +36,11 @@ public abstract class FaceitConfigSocket()
     public static Encoding DEFAULT_ENCODING { get; } = Encoding.UTF8;
 
     /// <summary>
+    /// The default log level to use for logging
+    /// </summary>
+    public static LogLevel DEFAULT_LOG_LEVEL { get; } = LogLevel.Information;
+
+    /// <summary>
     /// The Web Socket URI for the chat server
     /// </summary>
     public abstract string Url { get; set; }
@@ -66,6 +71,11 @@ public abstract class FaceitConfigSocket()
     public virtual TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(DEFAULT_REQUEST_TIMEOUT_SECONDS);
 
     /// <summary>
+    /// The log level to use for logging
+    /// </summary>
+    public virtual LogLevel LogLevel { get; set; } = DEFAULT_LOG_LEVEL;
+
+    /// <summary>
     /// The encoding to use for the web-socket connection
     /// </summary>
     public virtual Encoding Encoding { get; set; } = DEFAULT_ENCODING;
@@ -82,5 +92,10 @@ public abstract class FaceitConfigSocket()
         ReconnectError = TimeSpan.FromSeconds(section.GetValue(nameof(ReconnectError), DEFAULT_RECONNECT_ERROR_SECONDS));
         PingInterval = TimeSpan.FromSeconds(section.GetValue(nameof(PingInterval), DEFAULT_PING_INTERVAL_SECONDS));
         RequestTimeout = TimeSpan.FromSeconds(section.GetValue(nameof(RequestTimeout), DEFAULT_REQUEST_TIMEOUT_SECONDS));
+
+        var level = section.GetValue(nameof(LogLevel), DEFAULT_LOG_LEVEL.ToString());
+        if (!Enum.TryParse<LogLevel>(level, true, out var logLevel))
+            logLevel = DEFAULT_LOG_LEVEL;
+        LogLevel = logLevel;
     }
 }

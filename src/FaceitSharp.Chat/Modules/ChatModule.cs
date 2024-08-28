@@ -184,9 +184,9 @@ internal abstract class ChatModule(
         get
         {
 #if DEBUG
-            return DebugMode ? LogLevel.Trace : LogLevel.Information;
+            return DebugMode ? LogLevel.Trace : _client.Config.Chat.LogLevel;
 #else
-            return LogLevel.Information;
+            return _client.Config.Chat.LogLevel;
 #endif
         }
     }
@@ -225,9 +225,9 @@ internal abstract class ChatModule(
     {
         try
         {
-            Trace("[BOXED ACTION] STARTING >> " + context, args);
+            Debug("[BOXED ACTION] STARTING >> " + context, args);
             await action();
-            Trace("[BOXED ACTION] FINISHED >> " + context, args);
+            Debug("[BOXED ACTION] FINISHED >> " + context, args);
         }
         catch (Exception error)
         {
@@ -239,9 +239,9 @@ internal abstract class ChatModule(
     {
         try
         {
-            Trace("[BOXED ACTION] STARTING >> " + context, args);
+            Debug("[BOXED ACTION] STARTING >> " + context, args);
             action();
-            Trace("[BOXED ACTION] FINISHED >> " + context, args);
+            Debug("[BOXED ACTION] FINISHED >> " + context, args);
         }
         catch (Exception error)
         {

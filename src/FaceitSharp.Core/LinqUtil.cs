@@ -28,6 +28,32 @@ public static class LinqUtil
     }
 
     /// <summary>
+    /// Strips any punctuation from the string
+    /// </summary>
+    /// <param name="input">The input string</param>
+    /// <returns>The string with punctuation stripped out</returns>
+    public static string StripPunctuation(this string input)
+    {
+        return new string(input.Where(c => !char.IsPunctuation(c)).ToArray());
+    }
+
+    /// <summary>
+    /// Gets all of the words from the given string, stripping punctuation
+    /// </summary>
+    /// <param name="input">The input string</param>
+    /// <param name="lower">Whether or not to run <see cref="string.ToLowerInvariant"/></param>
+    /// <param name="splitter">The character to split by</param>
+    /// <returns>The words in the string</returns>
+    public static string[] Words(this string? input, bool lower = true, char splitter = ' ')
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return [];
+
+        if (lower) input = input.ToLowerInvariant();
+        return input.StripPunctuation().Split(splitter, StringSplitOptions.RemoveEmptyEntries);
+    }
+
+    /// <summary>
     /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object.
     /// </summary>
     /// <typeparam name="T">An enumeration type.</typeparam>

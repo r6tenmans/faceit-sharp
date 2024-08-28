@@ -10,6 +10,10 @@ public class Iq : Stanza
 
     public IEnumerable<Session> Sessions => Children.OfType<Session>();
 
+    public IEnumerable<Error> Errors => Children.OfType<Error>();
+
+    public bool HasError => Errors.Any();
+
     /// <summary>
     /// The type of the IQ stanza.
     /// </summary>
@@ -58,6 +62,25 @@ public class Iq : Stanza
         }
     }
 
+    public static void Parse(XmlElement element, List<IIqChild> children, List<XmlElement> unknown)
+    {
+        foreach (var obj in element.ChildNodes)
+        {
+            if (obj is not XmlElement child) continue;
+
+            var stanza = Xml.GetStanza(child,
+                typeof(Bind), typeof(Session), typeof(Error), typeof(Text));
+
+            if (stanza is null || stanza is not IIqChild el)
+            {
+                unknown.Add(child);
+                continue;
+            }
+
+            children.Add(el);
+        }
+    }
+
     public interface IIqChild { }
 
     public class Bind : Stanza, IIqChild
@@ -82,5 +105,45 @@ public class Iq : Stanza
     public class Session(XmlElement element) : Stanza(element), IIqChild
     {
         public override string? DefaultNamespace() => Namespaces.SESSION;
+    }
+
+    public class Text(XmlElement element) : Stanza(element), IIqChild
+    {
+        public override string? DefaultNamespace()
+        {
+            return Namespaces.STANZAS;
+        }
+
+        public string? Value
+        {
+            get => Element.InnerText?.ForceNull();
+            set => Element.InnerText = value ?? string.Empty;
+        }
+    }
+
+    public class Error : Stanza
+    {
+        public string? Type
+        {
+            get => Element.GetAttr("type");
+            set => Element.SetAttr("type", value);
+        }
+
+        public int? Code
+        {
+            get => Element.GetAttrInt("code");
+            set => Element.SetAttr("code", value);
+        }
+
+        public string Value => string.Join("\r\n", Children.OfType<Text>().Select(t => t.Value).Where(t => t != null));
+
+        public List<IIqChild> Children { get; } = [];
+
+        public List<XmlElement> Unknown { get; } = [];
+
+        public Error(XmlElement element) : base(element)
+        {
+            Parse(element, Children, Unknown);
+        }
     }
 }

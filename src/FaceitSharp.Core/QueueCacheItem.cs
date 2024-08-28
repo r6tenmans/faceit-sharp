@@ -6,7 +6,6 @@
 /// <typeparam name="T">The type of item being cached</typeparam>
 /// <param name="_resolver">The resolver to get the latest instance of the cached item</param>
 /// <param name="_expireMinutes">How many minutes the cache should live for</param>
-/// <param name="_queueTimeoutMinutes">How long to wait before considering the queue timed out</param>
 public class QueueCacheItem<T>(
     Func<Task<T>> _resolver,
     double _expireMinutes = 5.0)
