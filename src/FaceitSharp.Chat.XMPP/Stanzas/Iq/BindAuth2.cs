@@ -12,7 +12,7 @@ public class BindAuth2 : IStanzaRequest
             .Where<Iq>(t => t.Id == ID && t.Type == IqType.Result);
     }
 
-    public static JID? ProcessResponse(Stanza response)
+    public JID? ProcessResponse(Stanza response)
     {
         if (response is not Iq iq) return null;
 
