@@ -37,6 +37,8 @@ internal class ReplyMessage(
 
     public bool MentionsEveryone => _original.MentionsEveryone;
 
+    public bool MentionsHere => _original.MentionsHere;
+
     public string[] AttachedImages => _original.AttachedImages;
 
     public bool MentionsCurrentUser => _original.MentionsCurrentUser;

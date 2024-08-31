@@ -13,11 +13,18 @@ public record class UserMention(string Username, string UserId)
     public bool IsEveryone => UserId.Equals("everyone", StringComparison.InvariantCultureIgnoreCase);
 
     /// <summary>
+    /// Whether or not the mention is for @here
+    /// </summary>
+    public bool IsHere => UserId.Equals("here", StringComparison.InvariantCultureIgnoreCase);
+
+    /// <summary>
     /// Gets the resource ID for the mention
     /// </summary>
     public string ResourceId => IsEveryone
         ? "room:everyone"
-        : $"xmpp:{UserId}@faceit.com";
+        : IsHere
+            ? "room:here"
+            : $"xmpp:{UserId}@faceit.com";
 
     /// <summary>
     /// Gets the slug for the mention
@@ -35,3 +42,8 @@ public record class UserMention(string Username, string UserId)
 /// Represents a mention to everyone.
 /// </summary>
 public record class EveryoneMention() : UserMention("everyone", "everyone");
+
+/// <summary>
+/// Represents a mention to everyone currently present
+/// </summary>
+public record class HereMention(): UserMention("here", "here");

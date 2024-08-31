@@ -26,6 +26,11 @@ public interface IRoomMessage : IMessageEvent
     bool MentionsEveryone { get; }
 
     /// <summary>
+    /// Whether or not the message mentions everyone currently in the room
+    /// </summary>
+    bool MentionsHere { get; }
+
+    /// <summary>
     /// Any images that are attached to the message
     /// </summary>
     string[] AttachedImages { get; }
@@ -66,6 +71,8 @@ internal class RoomMessage : MessageEvent, ITeamMessage, IHubMessage
     public virtual required FaceitUser[] Mentions { get; init; }
 
     public virtual required bool MentionsEveryone { get; init; }
+
+    public virtual required bool MentionsHere { get; init; }
 
     public virtual required bool MentionsCurrentUser { get; init; }
 

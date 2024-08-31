@@ -325,7 +325,7 @@ internal class MessageModule(
     public async Task<FaceitUser[]> ResolveMentions(IEnumerable<Message.Reference> mentions)
     {
         return (await Task.WhenAll(mentions
-            .Where(t => t.IsMention && !t.IsEveryone)
+            .Where(t => t.IsMention && !t.IsEveryone && !t.IsHere)
             .Select(async m =>
             {
                 var uid = m.Uri?.Replace("xmpp:", "").Replace("@faceit.com", "");
@@ -442,6 +442,7 @@ internal class MessageModule(
         var (hub, match, team, left, user, type, timestamp, from, to) = context;
         var mentions = await ResolveMentions(stanza.Mentions);
         var everyone = stanza.Mentions.Any(t => t.IsEveryone);
+        var here = stanza.Mentions.Any(t => t.IsHere);
 
         yield return new RoomMessage
         {
@@ -456,6 +457,7 @@ internal class MessageModule(
             Content = stanza.StrBody ?? string.Empty,
             Mentions = mentions,
             MentionsEveryone = everyone,
+            MentionsHere = here,
             MentionsCurrentUser = mentions.Any(t => t.UserId == _client.Auth.Id),
             Type = stanza.Type ?? string.Empty,
             AttachedImages = stanza

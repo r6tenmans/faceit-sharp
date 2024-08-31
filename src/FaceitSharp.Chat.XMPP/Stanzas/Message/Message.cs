@@ -110,6 +110,8 @@ public class Message : Stanza
 
         public bool IsEveryone => Uri == "room:everyone";
 
+        public bool IsHere => Uri == "room:here";
+
         public string? Uri
         {
             get => Element.GetAttr("uri"); 
