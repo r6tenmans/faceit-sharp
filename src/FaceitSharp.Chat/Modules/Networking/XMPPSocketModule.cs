@@ -21,6 +21,11 @@ public interface IXMPPSocketModule : ISocketModule
     IObservable<string> UnparsedMessages { get; }
 
     /// <summary>
+    /// Triggered when a message is sent to the underlying socket
+    /// </summary>
+    IObservable<XmlElement> DataSent { get; }
+
+    /// <summary>
     /// Sends the given XML element to the XMPP socket
     /// </summary>
     /// <param name="element">The XML element to send</param>
@@ -52,10 +57,12 @@ internal class XMPPSocketModule(
     private readonly Subject<Stanza> _parsedStanzas = new();
     private readonly Subject<XmlElement> _unparsedStanzas = new();
     private readonly Subject<string> _unparsedMessages = new();
+    private readonly Subject<XmlElement> _sent = new();
 
     private IObservable<Stanza>? _parsedStanzasInstance;
     private IObservable<XmlElement>? _unparsedStanzaInstance;
     private IObservable<string>? _unparsedMessageInstance;
+    private IObservable<XmlElement>? _sentInstance;
 
     private readonly Type[] _globalStanzas = [typeof(Message), typeof(Presence), typeof(Iq), typeof(Features)];
     private readonly ConcurrentDictionary<IResponseExpected, TaskCompletionSource<Stanza>> _resolvers = [];
@@ -66,11 +73,14 @@ internal class XMPPSocketModule(
 
     public IObservable<Stanza> Stanzas => _parsedStanzasInstance ??= _parsedStanzas.AsObservable();
 
+    public IObservable<XmlElement> DataSent => _sentInstance ??= _sent.AsObservable();
+
     public override string ModuleName => "XMPP Socket Module";
 
-    public Task Send(XmlElement element, bool instant)
+    public async Task Send(XmlElement element, bool instant)
     {
-        return Send(element.ToXmlString(), instant);
+        await Send(element.ToXmlString(), instant);
+        _sent.OnNext(element);
     }
 
     public async Task<Stanza> Send(IStanzaRequest request, bool instant = false, double? timeoutSec = null)

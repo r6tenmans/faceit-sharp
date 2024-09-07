@@ -52,6 +52,21 @@ public interface IMessageModule
     IObservable<ITeamReplyMessage> FromTeam { get; }
 
     /// <summary>
+    /// All messages that are deleted
+    /// </summary>
+    IObservable<IMessageDeleted> MessageDeleted { get; }
+
+    /// <summary>
+    /// Any message that is edited
+    /// </summary>
+    IObservable<IReplyMessage> MessageEdited { get; }
+
+    /// <summary>
+    /// Any message that was sent
+    /// </summary>
+    IObservable<Message> MessageSent { get; }
+
+    /// <summary>
     /// Send a message to the given target
     /// </summary>
     /// <param name="to">Who to send the message to</param>
@@ -61,6 +76,53 @@ public interface IMessageModule
     /// <param name="type">The type of message to send</param>
     /// <returns>The message response</returns>
     Task<Message> Send(JID to, string message, string[]? images = null, UserMention[]? mentions = null, string? type = null);
+
+    /// <summary>
+    /// Edit a message
+    /// </summary>
+    /// <param name="to">What the context of the message was</param>
+    /// <param name="messageId">The resource ID of the message</param>
+    /// <param name="content">The edited message content</param>
+    /// <returns>The edit request response</returns>
+    Task<Iq> Edit(JID to, string messageId, string content);
+
+    /// <summary>
+    /// Edit a message
+    /// </summary>
+    /// <param name="message">The message to edit</param>
+    /// <param name="content">The edited message content</param>
+    /// <returns>The edit request response</returns>
+    Task<Iq> Edit(IRoomMessage message, string content);
+
+    /// <summary>
+    /// Edit a message
+    /// </summary>
+    /// <param name="message">The message to edit</param>
+    /// <param name="content">The edited message content</param>
+    /// <returns>The edit request response</returns>
+    Task<Iq> Edit(Message message, string content);
+
+    /// <summary>
+    /// Delete a message
+    /// </summary>
+    /// <param name="to">What the context of the message was</param>
+    /// <param name="messageId">The resource ID of the message</param>
+    /// <returns>The delete request response</returns>
+    Task<Iq> Delete(JID to, string messageId);
+
+    /// <summary>
+    /// Delete a message
+    /// </summary>
+    /// <param name="message">The message to delete</param>
+    /// <returns>The delete request response</returns>
+    Task<Iq> Delete(IRoomMessage message);
+
+    /// <summary>
+    /// Delete a message
+    /// </summary>
+    /// <param name="message">The message to delete</param>
+    /// <returns>The delete request response</returns>
+    Task<Iq> Delete(Message message);
 
     /// <summary>
     /// Subscribe to a chat room
@@ -145,6 +207,7 @@ internal class MessageModule(
     private readonly ConcurrentDictionary<string, IHubRoom> _roomHubs = [];
     private readonly ConcurrentDictionary<IMessageExpectation, TaskCompletionSource<IMessageEvent>> _resolvers = [];
     private readonly Subject<IMessageEvent> _messageEvents = new();
+    private readonly Subject<Message> _messageSent = new();
 
     public override string ModuleName => "Messaging Module";
 
@@ -157,6 +220,9 @@ internal class MessageModule(
     private IObservable<IHubReplyMessage>? _fromHub;
     private IObservable<IMatchReplyMessage>? _fromMatch;
     private IObservable<ITeamReplyMessage>? _fromTeam;
+    private IObservable<IMessageDeleted>? _messageDeleted;
+    private IObservable<IReplyMessage>? _messageEdited;
+    private IObservable<Message>? _messageSentSub;
 
     public IObservable<Message> Stanzas => _stanzas ??= _client.Connection.Stanzas.OfType<Message>();
 
@@ -183,6 +249,12 @@ internal class MessageModule(
     public IObservable<ITeamReplyMessage> FromTeam => _fromTeam ??= All
         .Where(t => t.Context == ContextType.Team)
         .Cast<ITeamReplyMessage>();
+
+    public IObservable<IMessageDeleted> MessageDeleted => _messageDeleted ??= Events.OfType<IMessageDeleted>();
+
+    public IObservable<IReplyMessage> MessageEdited => _messageEdited ??= All.Where(t => t.Edited is not null);
+
+    public IObservable<Message> MessageSent => _messageSentSub ??= _messageSent.AsObservable();
     #endregion
 
     public async Task<IMatchRoom> MatchRoom(string id)
@@ -261,7 +333,84 @@ internal class MessageModule(
             Type = type ?? "groupchat"
         };
 
-        return (Message)await _client.Connection.Send(stanza);
+        var result = (Message)await _client.Connection.Send(stanza);
+        _messageSent.OnNext(result);
+        return result;
+    }
+
+    public async Task<Iq> Edit(JID to, string messageId, string content)
+    {
+        var edit = new SendEdit
+        {
+            To = to.GetBareJID(),
+            MessageId = messageId,
+            Content = content,
+            ResourceId = _resourceId.Next().ToString()
+        };
+        return (Iq)await _client.Connection.Send(edit);
+    }
+
+    public Task<Iq> Edit(IRoomMessage message, string content)
+    {
+        if (string.IsNullOrEmpty(message.MessageId))
+            throw new ArgumentException("Message does not have a resource id");
+
+        var to = message.From.GetBareJID();
+        if (to == _client.Auth.Jid.GetBareJID())
+            to = message.To.GetBareJID();
+
+        return Edit(to, message.MessageId, content);
+    }
+
+    public Task<Iq> Edit(Message message, string content)
+    {
+        var mid = message.Archiveds.FirstOrDefault()?.Id;
+        if (string.IsNullOrEmpty(mid))
+            throw new ArgumentException("Message does not have a resource id");
+
+        if (message.From is null)
+            throw new ArgumentException("Message does not have a from jid");
+
+        var to = message.From.GetBareJID();
+        if (to == _client.Auth.Jid.GetBareJID())
+            to = message.To?.GetBareJID() ?? throw new ArgumentException("Message does not have a from jid");
+        return Edit(to, mid, content);
+    }
+
+    public async Task<Iq> Delete(JID to, string messageId)
+    {
+        var delete = new SendDelete
+        {
+            To = to.GetBareJID(),
+            MessageId = messageId,
+            ResourceId = _resourceId.Next().ToString()
+        };
+        return (Iq)await _client.Connection.Send(delete);
+    }
+
+    public Task<Iq> Delete(IRoomMessage message)
+    {
+        if (string.IsNullOrEmpty(message.MessageId))
+            throw new ArgumentException("Message does not have a resource id");
+
+        var to = message.From.GetBareJID();
+        if (to == _client.Auth.Jid.GetBareJID())
+            to = message.To.GetBareJID();
+
+        return Delete(to, message.MessageId);
+    }
+
+    public Task<Iq> Delete(Message message)
+    {
+        var mid = message.Archiveds.FirstOrDefault()?.Id;
+        if (string.IsNullOrEmpty(mid))
+            throw new ArgumentException("Message does not have a resource id");
+
+        if (message.To is null)
+            throw new ArgumentException("Message does not have a from jid");
+
+        var to = message.To.GetBareJID();
+        return Delete(to, mid);
     }
 
     public async Task<bool> Subscribe(JID to, bool? presenceInit = null, bool? presenceUpdate = null, int? priority = null)
@@ -444,9 +593,16 @@ internal class MessageModule(
         var everyone = stanza.Mentions.Any(t => t.IsEveryone);
         var here = stanza.Mentions.Any(t => t.IsHere);
 
+        var messageId = stanza.Archiveds.FirstOrDefault()?.Id;
+
+        var edit = stanza.Extras
+            .FirstOrDefault(t => t.IsEditing)
+            ?.Timestamp;
+
         yield return new RoomMessage
         {
-
+            MessageId = messageId,
+            Edited = edit,
             Author = user!,
             Timestamp = timestamp,
             From = from,
@@ -470,6 +626,53 @@ internal class MessageModule(
             Hub = hub!,
             Match = match!,
         };
+    }
+
+    public IEnumerable<IMessageEvent> ProcessDeletes(ResolvedContext context, Message stanza)
+    {
+        var (hub, match, team, _, user, type, timestamp, from, to) = context;
+        foreach (var delete in stanza.DeletedMessages)
+        {
+            yield return new MessageDeleted 
+            {
+                Author = user!,
+                Timestamp = timestamp,
+                From = from,
+                To = to,
+                Context = type,
+                Team = team!,
+                Hub = hub!,
+                Match = match!,
+                ResourceId = stanza.Id,
+                MessageId = delete,
+            };
+        }
+    }
+
+    public async Task<FaceitUser?> FindBackupUser(Message stanza)
+    {
+        string? FromEdit()
+        {
+            var editor = stanza.Extras.FirstOrDefault(t => t.IsEditing);
+            if (editor is null || string.IsNullOrEmpty(editor.By)) return null;
+
+            var by = new JID(editor.By).Node;
+            if (string.IsNullOrEmpty(by)) return null;
+
+            return by;
+        }
+
+        string? FromArchived()
+        {
+            var archived = stanza.Archiveds.FirstOrDefault();
+            if (archived is null || string.IsNullOrEmpty(archived.By?.Node)) return null;
+
+            return archived.By.Node;
+        }
+
+        var by = FromEdit() ?? FromArchived();
+        if (string.IsNullOrEmpty(by)) return null;
+        return await _client.Cache.User(by);
     }
 
     public async IAsyncEnumerable<IMessageEvent> ParseMessage(Message stanza)
@@ -513,14 +716,29 @@ internal class MessageModule(
             yield break;
         }
 
-        handled = false;
         await foreach(var evt in ProcessJoins(resolved, stanza))
         {
             handled = true;
             yield return evt;
         }
 
-        if (handled || user is null) yield break;
+        if (handled) yield break;
+
+        foreach (var evt in ProcessDeletes(resolved, stanza))
+        {
+            handled = true;
+            yield return evt;
+        }
+
+        if (handled) yield break;
+
+        if (user is null)
+        {
+            user = await FindBackupUser(stanza);
+            if (user is null) yield break;
+
+            resolved = new ResolvedContext(hub, match, team, left, user, type, timestamp, stanza.From, stanza.To);
+        }
 
         await foreach(var evt in ProcessMessages(resolved, stanza))
             yield return evt;
@@ -564,7 +782,7 @@ internal class MessageModule(
         //Only call the `ParseMessage` method once per stanza
         Manage(Stanzas
             .SelectMany(t => ParseMessage(t).ToObservable())
-            .Where(t => t.Author.UserId != _client.Auth.Id)
+            .Where(t => t.Author?.UserId != _client.Auth.Id)
             .Where(t => !MessageHandler(t))
             .Subscribe(_messageEvents.OnNext));
         return base.OnSetup();

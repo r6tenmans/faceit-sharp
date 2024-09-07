@@ -3,7 +3,14 @@
 /// <summary>
 /// Represents message that can be replied to
 /// </summary>
-public interface IReplyMessage : IMessageSender, IRoomMessage { }
+public interface IReplyMessage : IMessageSender, IRoomMessage
+{
+    /// <summary>
+    /// Attempts to delete the message
+    /// </summary>
+    /// <returns>The delete request response</returns>
+    Task<Iq> Delete();
+}
 
 /// <summary>
 /// Represents a hub message that can be replied to
@@ -25,6 +32,10 @@ internal class ReplyMessage(
     RoomMessage _original,
     IFaceitChatClient _chat) : ITeamReplyMessage, IHubReplyMessage
 {
+    public string? MessageId => _original.MessageId;
+
+    public DateTime? Edited => _original.Edited;
+
     public ContextType Context => _original.Context;
 
     public bool LeftSide => _original.LeftSide;
@@ -64,6 +75,14 @@ internal class ReplyMessage(
 
     public Task<Message> Send(string message, string[] images, params UserMention[] mentions)
         => _chat.Messages.Send(_id, message, images, mentions);
+
+    public Task<Iq> Delete()
+    {
+        if (string.IsNullOrEmpty(MessageId))
+            throw new Exception("Cannot delete a message without a message id");
+
+        return _chat.Messages.Delete(_id, MessageId);
+    }
 
     public override string ToString()
     {

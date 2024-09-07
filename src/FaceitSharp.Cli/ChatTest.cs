@@ -5,6 +5,7 @@ namespace FaceitSharp.Cli;
 using Chat;
 using Chat.Messaging;
 using Chat.Messaging.Rooms;
+using Chat.XMPP;
 
 internal class ChatTest(
     IFaceitChatClient _chat,
@@ -25,6 +26,24 @@ internal class ChatTest(
         using var match = await WatchMatch(matchId);
         using var hub = await WatchHub(hubId);
 
+        using var sub3 = _chat.Messages.All.Subscribe(msg =>
+        {
+            _logger.LogWarning("MSG >> {type} >> [{time:yyyy-MM-dd HH:mm:ss}] {Name}: {Content}",
+                    msg.Context.ToString(), msg.Timestamp, msg.Author.Name, msg.Content);
+        });
+
+        using var sub = _chat.Messages.MessageDeleted.Subscribe(t =>
+        {
+            _logger.LogWarning("MSG DELETED >> [{time:yyyy-MM-dd HH:mm:ss}] {context}: {messageId}", 
+                t.Timestamp, t.Context.ToString(), t.MessageId);
+        });
+
+        using var sub2 = _chat.Messages.MessageEdited.Subscribe(t =>
+        {
+            _logger.LogWarning("MSG EDITED >> [{time:yyyy-MM-dd HH:mm:ss}] {context}: {messageId}", 
+                t.Edited, t.Context.ToString(), t.MessageId);
+        });
+
         _logger.LogInformation("Waiting for messages");
         await Task.Delay(-1);
     }
@@ -36,8 +55,12 @@ internal class ChatTest(
             .Messages
             .Subscribe(async msg =>
             {
-                _logger.LogInformation("MSG >> HUB >> [{time:yyyy-MM-dd HH:mm:ss}] {Name}: {Content}", 
+                _logger.LogWarning("MSG >> HUB >> [{time:yyyy-MM-dd HH:mm:ss}] {Name}: {Content}", 
                     msg.Timestamp, msg.Author.Name, msg.Content);
+
+                if (msg.Edited is not null)
+                    _logger.LogWarning("MSG >> HUB >> [{time:yyyy-MM-dd HH:mm:ss}] {Name} edited: {Content}", 
+                                               msg.Edited, msg.Author.Name, msg.Content);
 
                 if (!msg.MentionsCurrentUser) return;
 
@@ -77,6 +100,23 @@ internal class ChatTest(
             return true;
         }
 
+        if (words.Contains("delete"))
+        {
+            var res = await message.Delete();
+            _logger.LogWarning("Deleted message: {res}", res.Element.ToXmlString());
+            return true;
+        }
+
+        if (words.Contains("edit"))
+        {
+            var msg = await message.Send("Testing");
+            await Task.Delay(1000);
+            var res = await _chat.Messages.Edit(msg, "Testing 2");
+            _logger.LogWarning("Edited message: {res}", res.Element.ToXmlString());
+            return true;
+        }
+
+
         return false;
     }
 
@@ -87,9 +127,13 @@ internal class ChatTest(
             .Messages
             .Subscribe(async msg =>
             {
-                _logger.LogInformation("MSG >> MATCH >> [{time:yyyy-MM-dd HH:mm:ss}] {Name}: {Content}", 
+                _logger.LogWarning("MSG >> MATCH >> [{time:yyyy-MM-dd HH:mm:ss}] {Name}: {Content}", 
                     msg.Timestamp, msg.Author.Name, msg.Content);
-                
+
+                if (msg.Edited is not null)
+                    _logger.LogWarning("MSG >> HUB >> [{time:yyyy-MM-dd HH:mm:ss}] {Name} edited: {Content}",
+                        msg.Edited, msg.Author.Name, msg.Content);
+
                 if (!msg.MentionsCurrentUser) return;
 
                 await msg.Send($"Hello there, @{msg.Author.Name} ! How is the match going? (Sorry, I can't do anything yet!)", msg.Author);

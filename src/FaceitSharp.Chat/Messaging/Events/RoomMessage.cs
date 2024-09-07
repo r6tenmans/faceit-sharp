@@ -6,6 +6,17 @@
 public interface IRoomMessage : IMessageEvent
 {
     /// <summary>
+    /// The date and time the message was edited
+    /// </summary>
+    /// <remarks>Null if the message hasn't been edited</remarks>
+    DateTime? Edited { get; }
+
+    /// <summary>
+    /// The ID of the message that was received
+    /// </summary>
+    string? MessageId { get; }
+
+    /// <summary>
     /// The content of the message.
     /// </summary>
     string Content { get; }
@@ -64,6 +75,10 @@ public interface IHubMessage : IRoomMessage, IHubEvent { }
 
 internal class RoomMessage : MessageEvent, ITeamMessage, IHubMessage
 {
+    public virtual required string? MessageId { get; init; }
+
+    public virtual required DateTime? Edited { get; init; }
+
     public virtual required string Content { get; init; }
 
     public virtual required string Type { get; init; }

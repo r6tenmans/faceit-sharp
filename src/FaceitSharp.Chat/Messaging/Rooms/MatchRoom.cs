@@ -1,7 +1,4 @@
-﻿using FaceitSharp.Chat.XMPP.Stanzas;
-using static FaceitSharp.Chat.XMPP.Stanzas.Message;
-
-namespace FaceitSharp.Chat.Messaging.Rooms;
+﻿namespace FaceitSharp.Chat.Messaging.Rooms;
 
 /// <summary>
 /// Represents a match room on FaceIT that can be interacted with

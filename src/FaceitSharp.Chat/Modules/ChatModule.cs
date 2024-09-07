@@ -177,7 +177,7 @@ internal abstract class ChatModule(
     /// <summary>
     /// This has no effect in production builds. Purely for testing
     /// </summary>
-    public virtual bool DebugMode => true;
+    public virtual bool DebugMode => false;
 
     public virtual LogLevel MinimumLogLevel
     {

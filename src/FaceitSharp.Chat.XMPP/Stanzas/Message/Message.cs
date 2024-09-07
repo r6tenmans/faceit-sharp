@@ -34,9 +34,13 @@ public class Message : Stanza
 
     public IEnumerable<Composing> Composings => Children.OfType<Composing>();
 
-    public IEnumerable<Img> Images => Children.OfType<X>().SelectMany(t => t.Images);
+    public IEnumerable<X> Extras => Children.OfType<X>();
 
-    public IEnumerable<JID> UserJoins => Children.OfType<X>().SelectMany(t => t.UserJoins);
+    public IEnumerable<Img> Images => Extras.SelectMany(t => t.Images);
+
+    public IEnumerable<JID> UserJoins => Extras.SelectMany(t => t.UserJoins);
+
+    public IEnumerable<string> DeletedMessages => Extras.SelectMany(t => t.Deletes);
 
     public string? StrBody => string.Join("\n", Bodies.Select(b => b.Value));
 
@@ -55,7 +59,7 @@ public class Message : Stanza
                 typeof(Body), typeof(Data),
                 typeof(Archived), typeof(Reference),
                 typeof(Composing), typeof(Read),
-                typeof(X), typeof(Img), typeof(Item));
+                typeof(X), typeof(Img), typeof(Item), typeof(Deleted));
 
             if (stanza is null || stanza is not IMessageChild el)
             {
@@ -153,15 +157,42 @@ public class Message : Stanza
         }
     }
 
+    public class Deleted : Stanza, IMessageChild
+    {
+        public List<IMessageChild> Children { get; } = [];
+
+        public List<XmlElement> Unknown { get; } = [];
+
+        public Deleted(XmlElement element) : base(element)
+        {
+            Parse(element, Children, Unknown);
+        }
+    }
+
     public class X : Stanza, IMessageChild
     {
         public List<IMessageChild> Children { get; } = [];
 
         public List<XmlElement> Unknown { get; } = [];
 
+        public DateTime? Timestamp
+        {
+            get => Element.GetAttrDate("timestamp");
+            set => Element.SetAttr("timestamp", value);
+        }
+
+        public string? By
+        {
+            get => Element.GetAttr("by");
+            set => Element.SetAttr("by", value);
+        }
+
         public bool IsAnnouncement => Element.GetAttr("xmlns") == Namespaces.ANNOUNCEMENTS;
 
         public bool IsAttachments => Element.GetAttr("xmlns") == Namespaces.UPLOAD;
+
+        public bool IsEditing => Element.GetAttr("xmlns") == Namespaces.CHAT_EDIT ||
+            Element.GetAttr("xmlns") == Namespaces.CHAT_GROUP_EDIT;
 
         public IEnumerable<JID> UserJoins
         {
@@ -177,6 +208,13 @@ public class Message : Stanza
         }
 
         public IEnumerable<Img> Images => Children.OfType<Img>();
+
+        public IEnumerable<string> Deletes => Children
+            .OfType<Deleted>()
+            .SelectMany(t => t.Children)
+            .OfType<Item>()
+            .Select(t => t.Id!)
+            .Where(t => !string.IsNullOrEmpty(t));
 
         public X(XmlElement element) : base(element)
         {
