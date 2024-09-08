@@ -67,6 +67,11 @@ public interface IMessageModule
     IObservable<Message> MessageSent { get; }
 
     /// <summary>
+    /// Message events before they are checked against handlers
+    /// </summary>
+    IObservable<IMessageEvent> PrecheckEvents { get; }
+
+    /// <summary>
     /// Send a message to the given target
     /// </summary>
     /// <param name="to">Who to send the message to</param>
@@ -206,6 +211,7 @@ internal class MessageModule(
     private readonly ConcurrentDictionary<string, IMatchRoom> _roomMatches = [];
     private readonly ConcurrentDictionary<string, IHubRoom> _roomHubs = [];
     private readonly ConcurrentDictionary<IMessageExpectation, TaskCompletionSource<IMessageEvent>> _resolvers = [];
+    private readonly Subject<IMessageEvent> _precheckEvents = new();
     private readonly Subject<IMessageEvent> _messageEvents = new();
     private readonly Subject<Message> _messageSent = new();
 
@@ -223,8 +229,11 @@ internal class MessageModule(
     private IObservable<IMessageDeleted>? _messageDeleted;
     private IObservable<IReplyMessage>? _messageEdited;
     private IObservable<Message>? _messageSentSub;
+    private IObservable<IMessageEvent>? _precheckEventsSub;
 
     public IObservable<Message> Stanzas => _stanzas ??= _client.Connection.Stanzas.OfType<Message>();
+
+    public IObservable<IMessageEvent> PrecheckEvents => _precheckEventsSub ??= _precheckEvents.AsObservable();
 
     public IObservable<IMessageEvent> Events => _events ??= _messageEvents.AsObservable();
 
@@ -779,9 +788,15 @@ internal class MessageModule(
 
     public override Task OnSetup()
     {
-        //Only call the `ParseMessage` method once per stanza
+        //First subscription is for processing stanzas into messages
+        //This attaches the context and gets all of the chat events
+        //And this occurs before filtering out the current user's messages
         Manage(Stanzas
             .SelectMany(t => ParseMessage(t).ToObservable())
+            .Subscribe(_precheckEvents.OnNext));
+        //Second subscription is for filtering out the current user's messages
+        //And then checking to see if it matches any of the handlers
+        Manage(PrecheckEvents
             .Where(t => t.Author?.UserId != _client.Auth.Id)
             .Where(t => !MessageHandler(t))
             .Subscribe(_messageEvents.OnNext));
