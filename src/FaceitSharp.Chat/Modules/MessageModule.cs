@@ -143,8 +143,9 @@ public interface IMessageModule
     /// Subscribe to the match and team chats
     /// </summary>
     /// <param name="match">The match to subscribe to</param>
+    /// <param name="resubscribe">Whether or not to resubscribe if the room has previously been subscribed to</param>
     /// <returns>Whether the subscription was successful or not</returns>
-    Task<bool> Subscribe(FaceitMatch match);
+    Task<bool> Subscribe(FaceitMatch match, bool resubscribe = false);
 
     /// <summary>
     /// Subscribes to the hub chat
@@ -211,6 +212,7 @@ internal class MessageModule(
     private readonly ConcurrentDictionary<string, IMatchRoom> _roomMatches = [];
     private readonly ConcurrentDictionary<string, IHubRoom> _roomHubs = [];
     private readonly ConcurrentDictionary<IMessageExpectation, TaskCompletionSource<IMessageEvent>> _resolvers = [];
+    private readonly ConcurrentBag<string> _subscribedRooms = [];
     private readonly Subject<IMessageEvent> _precheckEvents = new();
     private readonly Subject<IMessageEvent> _messageEvents = new();
     private readonly Subject<Message> _messageSent = new();
@@ -425,14 +427,28 @@ internal class MessageModule(
     public async Task<bool> Subscribe(JID to, bool? presenceInit = null, bool? presenceUpdate = null, int? priority = null)
     {
         var subscription = ChatSubscription.Create(to, _client.Auth.Jid, presenceInit, presenceUpdate, priority);
-        return await _client.Connection.Send(subscription) is not null;
+        var worked = await _client.Connection.Send(subscription) is not null;
+        if (worked && !_subscribedRooms.Contains(to.ToString())) 
+            _subscribedRooms.Add(to.ToString());
+        return worked;
     }
 
-    public async Task<bool> Subscribe(FaceitMatch match)
+    public async Task<bool> Subscribe(FaceitMatch match, bool resubscribe = false)
     {
         var (id, lid, rid) = match.GetJIDs();
         JID?[] ids = [id, lid, rid];
-        var results = await Task.WhenAll(ids.Where(t => t is not null).Select(t => Subscribe(t!)));
+        var validIds = ids.Where(t => t is not null).Select(t => t!).ToArray();
+        if (!resubscribe)
+        {
+            if (validIds.All(t => _subscribedRooms.Contains(t.ToString())))
+                return true;
+
+            validIds = validIds
+                .Where(t => !_subscribedRooms.Contains(t.ToString()))
+                .ToArray();
+        }
+
+        var results = await Task.WhenAll(validIds.Select(t => Subscribe(t)));
         return results.All(t => t);
     }
 
@@ -816,6 +832,7 @@ internal class MessageModule(
     {
         foreach (var (_, tsc) in _resolvers)
             tsc.TrySetCanceled();
+        _subscribedRooms.Clear();
         _resolvers.Clear();
         _roomMatches.Clear();
         _roomHubs.Clear();
