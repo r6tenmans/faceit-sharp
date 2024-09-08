@@ -431,8 +431,8 @@ internal class MessageModule(
     public async Task<bool> Subscribe(FaceitMatch match)
     {
         var (id, lid, rid) = match.GetJIDs();
-        JID[] ids = [id, lid, rid];
-        var results = await Task.WhenAll(ids.Select(t => Subscribe(t)));
+        JID?[] ids = [id, lid, rid];
+        var results = await Task.WhenAll(ids.Where(t => t is not null).Select(t => Subscribe(t!)));
         return results.All(t => t);
     }
 

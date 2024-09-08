@@ -65,11 +65,11 @@ public static class MessageUtil
     /// </summary>
     /// <param name="match">The match</param>
     /// <returns>The match JID, and the teams JIDs</returns>
-    public static (JID match, JID leftTeam, JID rightTeam) GetJIDs(this FaceitMatch match)
+    public static (JID match, JID? leftTeam, JID? rightTeam) GetJIDs(this FaceitMatch match)
     {
         var matchJid = match.GetJID();
-        var left = match.Teams.First().Value.GetJID(match);
-        var right = match.Teams.Last().Value.GetJID(match);
+        var left = match.Teams.Values.FirstOrDefault()?.GetJID(match);
+        var right = match.Teams.Values.LastOrDefault()?.GetJID(match);
         return (matchJid, left, right);
     }
 
