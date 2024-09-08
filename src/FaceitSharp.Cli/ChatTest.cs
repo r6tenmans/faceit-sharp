@@ -21,7 +21,7 @@ internal class ChatTest(
         }
 
         const string matchId = "1-7b81581e-6913-4829-9b34-4dffb9420560";
-        const string hubId = "fc88246e-f1a0-46ab-a1ec-0fe1e418db7b";
+        const string hubId = "35d07115-3740-4a31-9c77-35cdc23c9db2"; //"fc88246e-f1a0-46ab-a1ec-0fe1e418db7b";
 
         using var match = await WatchMatch(matchId);
         using var hub = await WatchHub(hubId);

@@ -103,6 +103,18 @@ public interface IMatchRoom : IMessageSender
     /// <param name="mentions">Any users to mention</param>
     /// <returns>The result of the message send</returns>
     Task<Message> SendTeam(bool left, string message, params UserMention[] mentions);
+
+    /// <summary>
+    /// Ensures all rooms in the match are subscribed to
+    /// </summary>
+    /// <returns>Whether or not the subscription was successful</returns>
+    Task<bool> EnsureSubscriptions();
+
+    /// <summary>
+    /// Resubscribes to all rooms in the match
+    /// </summary>
+    /// <returns>Whether or not the resubscription was successful</returns>
+    Task<bool> Resubscribe();
     #endregion
 }
 
@@ -184,11 +196,22 @@ internal class MatchRoom(
         _right = match.Teams.TryGetValue(_client.Config.Chat.FactionRight, out team) ? team : null;
     }
 
+    public Task<bool> EnsureSubscriptions()
+    {
+        return _client.Messages.Subscribe(Match);
+    }
+
+    public Task<bool> Resubscribe()
+    {
+        return _client.Messages.Subscribe(Match, true);
+    }
+
     public async Task Refresh()
     {
         var match = await _client.Cache.Match(Match.Id, true) 
             ?? throw new Exception("Match not found");
         SetContext(match);
+        await EnsureSubscriptions();
     }
 
     public FaceitTeam GetTeam(bool left)

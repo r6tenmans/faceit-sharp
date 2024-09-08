@@ -3,6 +3,15 @@
 public class Presence : Stanza
 {
     /// <summary>
+    /// The type of presence result
+    /// </summary>
+    public string? Type
+    {
+        get => Element.GetAttr("type");
+        set => Element.SetAttr("type", value);
+    }
+
+    /// <summary>
     /// Initializes a new instance of the Presence class.
     /// </summary>
     /// <param name="data">The content of the stanza.</param>

@@ -427,10 +427,17 @@ internal class MessageModule(
     public async Task<bool> Subscribe(JID to, bool? presenceInit = null, bool? presenceUpdate = null, int? priority = null)
     {
         var subscription = ChatSubscription.Create(to, _client.Auth.Jid, presenceInit, presenceUpdate, priority);
-        var worked = await _client.Connection.Send(subscription) is not null;
-        if (worked && !_subscribedRooms.Contains(to.ToString())) 
-            _subscribedRooms.Add(to.ToString());
-        return worked;
+        var result = (Presence)await _client.Connection.Send(subscription);
+        if (result is null || result.Type == "error")
+        {
+            Warning("Failed to subscribe to {jid}: {error}", to, result?.Element?.ToXmlString() ?? "No response from server");
+            return false;
+        }
+
+        var jid = to.ToString();
+        if (!_subscribedRooms.Contains(jid)) 
+            _subscribedRooms.Add(jid);
+        return true;
     }
 
     public async Task<bool> Subscribe(FaceitMatch match, bool resubscribe = false)
